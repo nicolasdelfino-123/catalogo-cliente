@@ -165,7 +165,6 @@ class Product(db.Model):
             'volume_ml': self.volume_ml,
             'created_at': self.created_at.isoformat(),
             'price_wholesale': float(self.price_wholesale) if self.price_wholesale else None,
-
         }
   
 
