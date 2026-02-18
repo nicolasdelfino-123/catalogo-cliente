@@ -1,0 +1,317 @@
+import { useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Context } from "../js/store/appContext.jsx";
+import { useNavigate, Link } from "react-router-dom";
+
+const API = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "";
+
+// --- helpers ---
+const normalizeImagePath = (u = "") => {
+  if (!u) return "";
+  if (u.startsWith("/admin/uploads/")) u = u.replace("/admin", "/public");
+  if (u.startsWith("/uploads/")) u = `/public${u}`;
+  return u;
+};
+
+const toAbsUrl = (u = "") => {
+  u = normalizeImagePath(u);
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("/public/")) return `${API}${u}`;
+  if (u.startsWith("/")) return u;
+  return `${API}/${u}`;
+};
+
+const getTitle = (it) => {
+  let base = String(it?.name ?? it?.product?.name ?? it?.title ?? "Producto");
+  if (it.selectedFlavor) base += ` (${it.selectedFlavor})`;
+  return base;
+};
+
+export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClose }) {
+  const { store, actions } = useContext(Context);
+  const navigate = useNavigate();
+
+  const isRouteMode = controlledOpen === undefined && controlledOnClose === undefined;
+  const [internalOpen, setInternalOpen] = useState(true);
+  const isOpen = isRouteMode ? internalOpen : !!controlledOpen;
+
+  const close = () => {
+    if (isRouteMode) {
+      setInternalOpen(false);
+      setTimeout(() => navigate(-1), 180);
+    } else if (controlledOnClose) {
+      controlledOnClose();
+    }
+  };
+
+  const total =
+    store.cart?.reduce(
+      (sum, item) =>
+        sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+      0
+    ) || 0;
+
+  const [postalCode, setPostalCode] = useState("");
+  const [pickup, setPickup] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && isOpen && close();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
+  const closeBtnRef = useRef(null);
+  useEffect(() => {
+    if (isOpen && closeBtnRef.current) closeBtnRef.current.focus();
+  }, [isOpen]);
+
+  useEffect(() => {
+    // 🚨 Solo una vez al montar el componente
+    if (window.location.pathname.includes("thank-you")) {
+      actions.resetCartAfterPayment?.();
+    }
+
+    // Si el carrito está vacío, asegúrate de reflejarlo en localStorage
+    if (Array.isArray(store.cart) && store.cart.length === 0) {
+      localStorage.setItem("cart", JSON.stringify([]));
+    }
+  }, []); // 👈 Solo se ejecuta una vez al montar
+
+
+
+
+  if (!controlledOpen && !isRouteMode && controlledOpen !== false) return null;
+
+  const DrawerContent = (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between p-4 sm:p-5 border-b">
+        <h2 id="cart-title" className="text-xl sm:text-2xl font-bold">
+          Carrito de compras
+        </h2>
+        <button
+          ref={closeBtnRef}
+          onClick={close}
+          aria-label="Cerrar carrito"
+          className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Items */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+        {!store.cart || store.cart.length === 0 ? (
+          <div className="text-center text-gray-500 py-16">
+            <p className="text-base sm:text-lg">Tu carrito está vacío</p>
+            <button
+              onClick={() => (isRouteMode ? navigate("/") : close())}
+              className="mt-4 w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Ver más productos
+            </button>
+          </div>
+        ) : (
+          <>
+            {store.cart.map((item) => {
+              const max = (item?.selectedFlavor && Array.isArray(item?.flavor_catalog))
+                ? (item.flavor_catalog.find(f => f?.name === item.selectedFlavor)?.stock ?? (Number.isFinite(Number(item?.stock)) ? Number(item.stock) : 0))
+                : (Number.isFinite(Number(item?.stock)) ? Number(item.stock) : 0);
+
+              const atLimit = Number(item.quantity || 0) >= Number(max || 0);
+
+              return (
+                <div key={`${item.id}-${item.selectedFlavor || 'default'}`} className="bg-white border rounded-lg p-3 sm:p-4 shadow-sm">
+                  <div className="flex gap-3">
+                    <img
+                      src={toAbsUrl(item?.image_url) || "/sin_imagen.jpg"}
+                      alt={getTitle(item)}
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => { e.currentTarget.src = "/sin_imagen.jpg"; }}
+                    />
+
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="font-medium text-sm sm:text-base leading-snug">
+                            {getTitle(item)}
+                          </h4>
+                          <p className="text-gray-900 font-semibold">
+                            ${Number(item.price || 0).toLocaleString("es-AR")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => actions.removeFromCart(item.id, item.selectedFlavor)}
+                          className="text-gray-400 hover:text-gray-600"
+                          aria-label="Eliminar producto"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+
+                      {/* Controles de cantidad */}
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              actions.updateCartQuantity(
+                                item.id,
+                                Math.max(1, (item.quantity || 1) - 1),
+                                item.selectedFlavor
+                              )
+                            }
+                            aria-label="Disminuir cantidad"
+                            className="w-9 h-9 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-lg"
+                          >
+                            -
+                          </button>
+                          <span className="min-w-[36px] text-center font-medium">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const next = Math.min((item.quantity || 1) + 1, Number(max || 0));
+                              actions.updateCartQuantity(item.id, next, item.selectedFlavor);
+                            }}
+                            aria-label="Aumentar cantidad"
+                            disabled={atLimit}
+                            title={atLimit ? "Sin stock disponible" : "Aumentar cantidad"}
+                            className={`w-9 h-9 rounded flex items-center justify-center text-lg ${atLimit ? "bg-gray-100 opacity-50 cursor-not-allowed" : "bg-gray-100 hover:bg-gray-200"}`}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="text-right font-semibold">
+                          ${(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString("es-AR")}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* Subtotal */}
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-gray-700">
+            Subtotal <span className="text-sm text-gray-400">(sin envío)</span> :
+          </span>
+          <span className="font-semibold">
+            ${total.toLocaleString("es-AR")}
+          </span>
+        </div>
+
+
+
+
+        {/* Nuestro local */}
+        <div>
+          <h3 className="font-semibold mb-2">Retiro en nuestro local</h3>
+          <label className="flex items-start gap-3 bg-white border rounded-lg p-3 sm:p-4 shadow-sm">
+            <input
+              type="checkbox"
+              checked={pickup}
+              className="mt-1 size-4 cart-checkbox"
+              onChange={(e) => {
+                setPickup(e.target.checked);
+                actions.setPickup(e.target.checked);
+              }}
+            />
+
+
+            <div className="flex-1">
+              <p className="text-sm sm:text-base">
+                Local Zarpados - Velez Sarsfield 303
+                <span className="block text-gray-500">
+                  Lunes a viernes 10:30hs a 13:00hs | 16:00hs a 22:00hs
+                  <br />
+                  Sábado 13:00hs a 22:00hs | Domingo cerrado
+                </span>
+              </p>
+            </div>
+            <span className="text-green-600 font-semibold">Gratis</span>
+          </label>
+        </div>
+      </div>
+
+      {/* Footer Totales / Acciones */}
+      {store.cart && store.cart.length > 0 && (
+        <div className="border-t p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xl font-semibold">Total:</span>
+            <span className="text-2xl font-bold text-purple-600">
+              ${total.toLocaleString("es-AR")}
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              if (isRouteMode) navigate("/checkout");
+              else {
+                close();
+                navigate("/checkout");
+              }
+            }}
+            className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+          >
+            INICIAR COMPRA
+          </button>
+
+          <div className="mt-4 text-center">
+            {isRouteMode ? (
+              <Link to="/" className="text-gray-700 underline hover:text-gray-900">
+                Ver más productos
+              </Link>
+            ) : (
+              <button onClick={close} className="text-gray-700 underline hover:text-gray-900">
+                Ver más productos
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (isRouteMode) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto">{DrawerContent}</div>
+      </div>
+    );
+  }
+
+  const modalUI = (
+    <div className={`fixed inset-0 z-[100] ${isOpen ? "pointer-events-auto" : "pointer-events-none"}`}>
+      <div
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-500 ease-out ${isOpen ? "opacity-100" : "opacity-0"
+          }`}
+        onClick={close}
+      />
+      <aside
+        className={`
+          absolute right-0 top-0
+          h-screen w-full max-w-md md:max-w-lg
+          bg-white shadow-2xl
+          transform transition-transform duration-500 ease-out
+          ${controlledOpen ? "translate-x-0" : "translate-x-full"}
+          flex flex-col text-gray-900
+        `}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-title"
+      >
+        {DrawerContent}
+      </aside>
+    </div>
+  );
+
+  return createPortal(modalUI, document.body);
+}
