@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react"
 import { Menu, X } from "lucide-react"
+import { useNavigate } from "react-router-dom";
+import { withWholesale } from "../utils/navigation.js";
+
 
 
 const CATEGORIES = [
@@ -53,6 +56,9 @@ export default function SidebarFilters({
 }) {
     const [open, setOpen] = useState(false)
     const [flavorSearch, setFlavorSearch] = useState("")
+
+    const navigate = useNavigate();
+
 
     const p = useMemo(() => ({
         min: Math.max(priceMin, Math.min(price?.min ?? priceMin, priceMax)),
@@ -212,9 +218,12 @@ export default function SidebarFilters({
                             <li key={c.slug}>
                                 <button
                                     onClick={() => {
+                                        navigate(`/mayorista/categoria/${c.slug}`);
+
                                         onSelectCategory?.(c.slug);
                                         setOpen(false);
                                     }}
+
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-purple-50 transition-colors ${active ? "bg-purple-200 text-purple-700 font-semibold" : "text-gray-900"}`}
                                 >
                                     {c.name}

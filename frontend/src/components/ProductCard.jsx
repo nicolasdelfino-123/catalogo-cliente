@@ -1,6 +1,7 @@
 import { useState, useContext } from "react"
 import { Context } from "../js/store/appContext"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
+
 
 
 const GRID_STATE_KEY = "productGridState";
@@ -46,6 +47,12 @@ export default function ProductCard({ product }) {
   const { actions } = useContext(Context)
   const navigate = useNavigate()
 
+  const location = useLocation();
+  const isWholesale = location.pathname.includes("mayorista");
+  const prefix = location.pathname.startsWith("/mayorista") ? "/mayorista" : "";
+
+
+
   const stock = Number(product?.stock ?? 0)
   const hasStock = stock > 0
   if (!hasStock && HIDE_WHEN_NO_STOCK) return null
@@ -54,7 +61,7 @@ export default function ProductCard({ product }) {
     const hasFlavors = product.flavor_enabled && Array.isArray(product.flavors) && product.flavors.length > 0
 
     if (hasFlavors && !selectedFlavor) {
-      navigate(`/product/${product.id}`)
+      navigate(`${prefix}/product/${product.id}`)
       return
     }
 
@@ -86,12 +93,12 @@ export default function ProductCard({ product }) {
       );
 
       // Navegamos al detalle y pasamos la categoría de origen
-      navigate(`/product/${product.id}`, {
+      navigate(`${prefix}/product/${product.id}`, {
         state: { fromCategory: slug },
       });
     } catch (err) {
       console.warn("No se pudo guardar scroll:", err);
-      navigate(`/product/${product.id}`);
+      navigate(`${prefix}/product/${product.id}`);
     }
   };
 
@@ -153,9 +160,22 @@ export default function ProductCard({ product }) {
         {/* 4) Precio centrado */}
         <div className="mb-3 text-center">
           <span className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">
-            ${Number(product.price || 0).toLocaleString("es-AR")}
+            ${
+              Number(
+                isWholesale && product.price_wholesale
+                  ? product.price_wholesale
+                  : product.price || 0
+              ).toLocaleString("es-AR")
+            }
           </span>
+
+          {isWholesale && product.price_wholesale && (
+            <div className="text-xs text-gray-500 mt-1">
+              Precio mayorista
+            </div>
+          )}
         </div>
+
 
         {/* 5) Cantidad + botón */}
         {hasStock ? (

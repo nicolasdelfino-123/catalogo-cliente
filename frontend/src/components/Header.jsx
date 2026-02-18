@@ -6,6 +6,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from '@/assets/logo.png'
 import logo22 from '@/assets/logo-22.png'
 import zarpados from '@/assets/zarpados-22.png'
+import { withWholesale } from "../utils/navigation.js";
+
 
 
 export default function Header() {
@@ -194,7 +196,8 @@ export default function Header() {
 
           {/* Logo */}
           <div className="flex-shrink-0 md:mr-auto">
-            <Link to="/inicio" aria-label="Ir al inicio" className="block">
+            <Link to={withWholesale("/inicio")}
+              aria-label="Ir al inicio" className="block">
               <img
                 src={zarpados}
                 alt="Zarpados"
@@ -220,7 +223,8 @@ export default function Header() {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex space-x-8">
-            <Link to="/inicio" className="hover:text-purple-400 transition-colors text-gray-300">Inicio</Link>
+            <Link to={withWholesale("/inicio")} className="hover:text-purple-400 transition-colors text-gray-300">Inicio</Link>
+
 
             {/* Dropdown de Productos */}
             <div className="relative" ref={productsDropdownRef}>
@@ -247,7 +251,7 @@ export default function Header() {
 
                   <div className="py-2">
                     <Link
-                      to="/products"
+                      to={withWholesale("/products")}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-medium border-b border-gray-100"
                       onClick={() => setProductsDropdownOpen(false)}
                     >
@@ -256,7 +260,7 @@ export default function Header() {
                     {productCategories.map((category) => (
                       <Link
                         key={category.route}
-                        to={category.route}
+                        to={withWholesale(category.route)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                         onClick={() => setProductsDropdownOpen(false)}
                       >
@@ -439,7 +443,7 @@ export default function Header() {
           <div className="md:hidden absolute left-0 right-0 top-full bg-gray-800 shadow-lg z-50">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <Link
-                to="/inicio"
+                to={withWholesale("/inicio")}
                 className="block px-3 py-2 hover:text-purple-400 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -451,7 +455,7 @@ export default function Header() {
                 <span className="block text-gray-200 font-medium mb-2">Productos:</span>
                 <div className="ml-4 space-y-1">
                   <Link
-                    to="/products"
+                    to={withWholesale("/products")}
                     className="block px-3 py-1 text-sm hover:text-purple-400 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -460,7 +464,7 @@ export default function Header() {
                   {productCategories.map((category) => (
                     <Link
                       key={category.route}
-                      to={category.route}
+                      to={withWholesale(category.route)}
                       className="block px-3 py-1 text-sm hover:text-purple-400 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >

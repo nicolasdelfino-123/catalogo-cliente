@@ -18,6 +18,7 @@ const getState = ({ getStore, getActions, setStore }) => {
 			shippingAddress: null,  // ← NUEVO: JSON de envío
 			dni: "",
 			productSearch: "",
+			isWholesale: false,
 
 
 			// Toast notifications
@@ -29,6 +30,19 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 		},
 		actions: {
+
+			setWholesaleMode: (value) => {
+				setStore({ isWholesale: value });
+				localStorage.setItem("wholesaleMode", value ? "1" : "0");
+			},
+
+			hydrateWholesaleMode: () => {
+				const saved = localStorage.getItem("wholesaleMode");
+				if (saved === "1") {
+					setStore({ isWholesale: true });
+				}
+			},
+
 
 			getAuthHeaders: () => {
 				const token = localStorage.getItem("token");

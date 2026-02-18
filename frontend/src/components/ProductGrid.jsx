@@ -5,6 +5,8 @@ import ProductCard from "./ProductCard.jsx"
 import SidebarFilters from "./SidebarFilters"
 import Modal from "./Modal.jsx"
 import { ChevronRight, ChevronLeft } from "lucide-react"
+import { withWholesale } from "../utils/navigation";
+
 
 // --- Persistencia ligera en sessionStorage ---
 const GRID_STATE_KEY = "productGridState";
@@ -379,7 +381,9 @@ export default function ProductGrid({ category, hideFilters = false }) {
               sessionStorage.setItem(prevKey, JSON.stringify({ ...saved, scrollY: 0 }));
 
               // Navega a la nueva categoría
-              navigate(`/categoria/${newSlug}`);
+              navigate(withWholesale(`/categoria/${newSlug}`))
+
+
 
               // Scroll inmediato + otro después del render
               window.scrollTo({ top: 0, behavior: "instant" });
