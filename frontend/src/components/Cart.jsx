@@ -145,7 +145,8 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
   };
 
 
-  const sendOrder = () => {
+  const sendOrder = async () => {
+
     if (!customerData.name || !customerData.zone || !customerData.payment) {
       alert("Por favor completá tus datos");
       return;
@@ -171,6 +172,50 @@ Pago: ${customerData.payment}
       "Gracias!",
       `${extraData}Gracias!`
     );
+
+    // 🔹 Construir items del pedido
+    const isWholesale = window.location.pathname.startsWith("/mayorista");
+
+    const orderItems = store.cart.map(item => ({
+      product_id: item.id,   // 👈 obligatorio
+      quantity: item.quantity,
+      price: isWholesale
+        ? (item.price_wholesale > 0 ? item.price_wholesale : 0)
+        : item.price,
+      selected_flavor: item.selectedFlavor || null
+    }));
+
+
+    // 🔹 calcular total
+    const totalAmount = orderItems.reduce(
+      (sum, i) => sum + i.price * i.quantity,
+      0
+    );
+
+    // 🔹 enviar pedido al backend
+    try {
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/public/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          customer_first_name: customerData.name,
+          customer_last_name: "",
+          customer_phone: "",
+          shipping_address: {
+            city: customerData.zone,
+            label: customerData.zone
+          },
+          payment_method: customerData.payment,
+          order_items: orderItems,
+          total_amount: totalAmount,
+          status: "pendiente"
+        })
+      });
+    } catch (err) {
+      console.error("Error guardando pedido:", err);
+    }
 
     // ✅ encode SOLO AQUÍ
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(finalMessage)}`;
