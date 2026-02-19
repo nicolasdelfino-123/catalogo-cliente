@@ -24,6 +24,8 @@ import zomo from '@/assets/zomo.png'
 function Inicio() {
     const { store, actions } = useContext(Context);
     const location = useLocation();
+    const isWholesale = location.pathname.startsWith("/mayorista");
+
     const [productSearch, setProductSearch] = useState("");
 
     {/* ====== Sección: Visitános (Tailwind) ====== */ }
@@ -251,7 +253,9 @@ function Inicio() {
 
                         {/* === PODS RECARGABLES === */}
                         <Link
-                            to="/categoria/pods-recargables"
+
+                            to={isWholesale ? "/mayorista/categoria/pods-recargables" : "/categoria/pods-recargables"}
+
                             className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             aria-label="Ir a Pods Recargables"
                         >
@@ -298,7 +302,7 @@ function Inicio() {
 
                         {/* === PODS DESECHABLES === */}
                         <Link
-                            to="/categoria/vapes-desechables"
+                            to={isWholesale ? "/mayorista/categoria/vapes-desechables" : "/categoria/vapes-desechables"}
                             className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             aria-label="Ir a Vapes Desechables"
                         >
@@ -321,7 +325,7 @@ function Inicio() {
 
                         {/* === PERFUMES === */}
                         <Link
-                            to="/categoria/perfumes"
+                            to={isWholesale ? "/mayorista/categoria/perfumes" : "/categoria/perfumes"}
                             className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             aria-label="Ir a Perfumes"
                         >
@@ -346,7 +350,7 @@ function Inicio() {
                         <div className="col-span-full flex flex-col sm:flex-row justify-center items-center gap-4 md:gap-6 lg:mt-0">
                             {/* RESISTENCIAS */}
                             <Link
-                                to="/categoria/resistencias"
+                                to={isWholesale ? "/mayorista/categoria/resistencias" : "/categoria/resistencias"}
                                 className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 w-full sm:w-[20rem] md:w-[22rem] focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 aria-label="Ir a Resistencias"
                             >
@@ -368,7 +372,8 @@ function Inicio() {
 
                             {/* LÍQUIDOS */}
                             <Link
-                                to="/categoria/liquidos"
+                                to={isWholesale ? "/mayorista/categoria/liquidos" : "/categoria/liquidos"}
+
                                 className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 w-full sm:w-[20rem] md:w-[22rem] focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 aria-label="Ir a Líquidos"
                             >
