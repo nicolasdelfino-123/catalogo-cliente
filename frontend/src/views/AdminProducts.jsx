@@ -225,6 +225,10 @@ export default function AdminProducts() {
     const [editingPriceId, setEditingPriceId] = useState(null);
     const [editingPrice, setEditingPrice] = useState("");
 
+    const [editingWholesaleId, setEditingWholesaleId] = useState(null);
+    const [editingWholesale, setEditingWholesale] = useState("");
+
+
 
 
     // Importación masiva
@@ -259,6 +263,11 @@ export default function AdminProducts() {
         // mantengo como string lo que ve el usuario
         setEditingPrice(String(p.price ?? ""));
     };
+    const startEditWholesale = (product) => {
+        setEditingWholesaleId(product.id);
+        setEditingWholesale(product.price_wholesale ?? "");
+    };
+
 
     const cancelEditPrice = () => {
         setEditingPriceId(null);
@@ -294,6 +303,57 @@ export default function AdminProducts() {
             alert("Error actualizando el precio");
         }
     };
+    const confirmEditWholesale = async () => {
+        if (!editingWholesaleId) return;
+
+        const newPrice = editingWholesale === "" ? null : Number(editingWholesale);
+
+        if (newPrice !== null && (!Number.isFinite(newPrice) || newPrice < 0)) {
+            alert("Precio mayorista inválido");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/admin/products/${editingWholesaleId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ price_wholesale: newPrice }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                alert(`No se pudo actualizar: ${data?.error || res.statusText}`);
+                return;
+            }
+
+            // actualizar estado local
+            setProducts(prev =>
+                prev.map(p =>
+                    p.id === editingWholesaleId
+                        ? { ...p, price_wholesale: newPrice }
+                        : p
+                )
+            );
+
+            setEditingWholesaleId(null);
+            setEditingWholesale("");
+        } catch (e) {
+            console.error(e);
+            alert("Error actualizando precio mayorista");
+        }
+    };
+
+
+
+    const cancelEditWholesale = () => {
+        setEditingWholesaleId(null);
+        setEditingWholesale("");
+    };
+
 
 
     const uploadImage = async (file, { asMain = false } = {}) => {
@@ -428,6 +488,10 @@ export default function AdminProducts() {
             const payload = {
                 ...cleanForm,
                 price: Number(form.price) || 0,        // 👈 fuerza número
+                price_wholesale: (form.price_wholesale === "" || form.price_wholesale === null || form.price_wholesale === undefined)
+                    ? null
+                    : Number(form.price_wholesale),
+
                 puffs: form.puffs === "" ? null : Number(form.puffs), // opcional: null si vacío
                 image_url: normalizedImageUrl,
                 short_description: form.short_description ?? "",
@@ -554,7 +618,11 @@ export default function AdminProducts() {
                         image_url: sinImagen,
                         image_urls: [],
                         puffs: "", // 👈 nuevo campo editable
+                        price: "", // 👈 opcional, pero prolijo
+                        price_wholesale: "", // ✅ NUEVO: precio mayorista opcional
                     })}
+
+
                     className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
                 >
                     Nuevo
@@ -646,6 +714,9 @@ export default function AdminProducts() {
                             <th className="p-2 text-left">Descripción corta</th>
                             <th className="p-2 text-left">Descripción larga</th>
                             <th className="p-2">Precio</th>
+
+                            <th className="p-2">Mayorista</th>
+
                             <th className="p-2">Stock</th>
                             <th className="p-2">Categoría</th>
                             <th className="p-2">Sabores</th>
@@ -720,6 +791,56 @@ export default function AdminProducts() {
                                         </div>
                                     )}
                                 </td>
+                                <td className="p-2">
+                                    {editingWholesaleId === p.id ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <input
+                                                className="w-24 border rounded px-2 py-1 text-right"
+                                                type="number"
+                                                step="0.01"
+                                                inputMode="decimal"
+                                                {...noSpin}
+                                                autoFocus
+                                                value={editingWholesale}
+                                                onChange={(e) => setEditingWholesale(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") confirmEditWholesale();
+                                                    if (e.key === "Escape") cancelEditWholesale();
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-green-50"
+                                                onClick={confirmEditWholesale}
+                                            >
+                                                ✅
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                onClick={cancelEditWholesale}
+                                            >
+                                                ❌
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className="tabular-nums">
+                                                {p.price_wholesale ? `$${p.price_wholesale}` : "—"}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                onClick={() => startEditWholesale(p)}
+                                            >
+                                                ✏️
+                                            </button>
+                                        </div>
+                                    )}
+                                </td>
+
+
+
                                 <td className="p-2 text-center">
                                     {form && form.id === p.id && form.flavor_stock_mode
                                         ? sumActiveFlavorStock(form.flavor_catalog || [])
@@ -767,6 +888,7 @@ export default function AdminProducts() {
 
                                             setForm({
                                                 ...p,
+                                                price_wholesale: p.price_wholesale ?? "", // ✅ NUEVO: trae mayorista al form
                                                 image_url: safeImage,                    // 👈 default en edición
                                                 image_urls: Array.isArray(p.image_urls) ? p.image_urls : (safeImage ? [safeImage] : []),
                                                 flavor_catalog: catalog,
@@ -774,6 +896,7 @@ export default function AdminProducts() {
                                                 flavor_stock_mode: flavorStockMode,
                                                 stock: flavorStockMode ? sum : (Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0),
                                             });
+
                                         }}
                                         className="px-3 py-1 border rounded hover:bg-gray-50"
                                     >
@@ -834,18 +957,43 @@ export default function AdminProducts() {
                             onChange={(e) => setForm({ ...form, brand: e.target.value })}
                         />
 
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
-                        <input
-                            className="w-full border rounded px-3 py-2"
-                            placeholder="Precio"
-                            type="number"
-                            step="0.01"
-                            inputMode="decimal"
-                            {...noSpin}
-                            value={form.price ?? ""}
-                            onChange={(e) => setForm({ ...form, price: e.target.value })} // guardamos string tal cual
-                            required
-                        />
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Precio minorista
+                                </label>
+                                <input
+                                    className="w-full border rounded px-3 py-2"
+                                    placeholder="Precio minorista"
+                                    type="number"
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    {...noSpin}
+                                    value={form.price ?? ""}
+                                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Precio mayorista
+                                </label>
+                                <input
+                                    className="w-full border rounded px-3 py-2"
+                                    placeholder="Opcional"
+                                    type="number"
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    {...noSpin}
+                                    value={form.price_wholesale ?? ""}
+                                    onChange={(e) =>
+                                        setForm({ ...form, price_wholesale: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
+
 
                         <label className="block text-sm font-medium text-gray-700 mb-1">Puffs (caladas)</label>
                         <input
