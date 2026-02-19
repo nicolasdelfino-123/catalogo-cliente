@@ -167,3 +167,42 @@ def serve_image(image_id: int):
     resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 año + immutable
     resp.headers['ETag'] = etag
     return resp
+
+from app.models import Order, OrderItem, now_cba_naive
+
+
+@public_bp.route('/orders', methods=['POST'])
+def create_order():
+    try:
+        data = request.get_json()
+
+        order = Order(
+            total_amount=data.get("total_amount", 0),
+            payment_method=data.get("payment_method", "coordinar"),
+            customer_first_name=data.get("customer_first_name"),
+            customer_phone=data.get("customer_phone"),
+            shipping_address=data.get("shipping_address", {}),
+            status="pending"
+        )
+
+        db.session.add(order)
+        db.session.flush()  # obtiene order.id
+
+        for item in data.get("order_items", []):
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item.get("product_id"),
+                quantity=item.get("quantity", 1),
+                price=item.get("price", 0),
+                selected_flavor=item.get("selected_flavor")
+            )
+            db.session.add(order_item)
+
+        db.session.commit()
+
+        return jsonify({"msg": "orden creada"}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print("ERROR creando orden:", e)
+        return jsonify({"error": str(e)}), 500
