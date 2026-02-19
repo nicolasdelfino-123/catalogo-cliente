@@ -125,7 +125,11 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
       message += `TOTAL: $${total.toLocaleString("es-AR")}\n\n`;
     }
 
+    // 🚚 info de envío (PRO y simple)
+    message += "🚚 Envío: a coordinar con el vendedor\n\n";
+
     message += "Gracias!";
+
 
     return message; // ⚠️ IMPORTANTE: SIN encode
   };
@@ -520,6 +524,11 @@ Pago: ${customerData.payment}
 
               </div>
             </div>
+            <p className="text-sm text-gray-500 mt-2 mb-4 text-center">
+              📦 Envío disponible <br />
+              <span className="italic">El costo se coordina con el vendedor.</span>
+            </p>
+
 
             <div className="flex justify-end gap-2">
               <button

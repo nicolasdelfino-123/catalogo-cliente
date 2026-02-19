@@ -218,11 +218,11 @@ export default function SidebarFilters({
                             <li key={c.slug}>
                                 <button
                                     onClick={() => {
-                                        navigate(`/mayorista/categoria/${c.slug}`);
-
+                                        navigate(withWholesale(`/categoria/${c.slug}`));
                                         onSelectCategory?.(c.slug);
                                         setOpen(false);
                                     }}
+
 
                                     className={`w-full text-left px-2 py-1 rounded hover:bg-purple-50 transition-colors ${active ? "bg-purple-200 text-purple-700 font-semibold" : "text-gray-900"}`}
                                 >
