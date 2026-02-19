@@ -373,7 +373,6 @@ function Inicio() {
                             {/* LÍQUIDOS */}
                             <Link
                                 to={isWholesale ? "/mayorista/categoria/liquidos" : "/categoria/liquidos"}
-
                                 className="group relative block rounded-xl overflow-hidden shadow-md h-28 sm:h-32 md:h-36 w-full sm:w-[20rem] md:w-[22rem] focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 aria-label="Ir a Líquidos"
                             >

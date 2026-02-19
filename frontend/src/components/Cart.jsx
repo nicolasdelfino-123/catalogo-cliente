@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Context } from "../js/store/appContext.jsx";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
 
 const API = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "";
 
@@ -31,6 +32,9 @@ const getTitle = (it) => {
 export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClose }) {
   const { store, actions } = useContext(Context);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isWholesale = location.pathname.startsWith("/mayorista");
+
 
   const isRouteMode = controlledOpen === undefined && controlledOnClose === undefined;
   const [internalOpen, setInternalOpen] = useState(true);
@@ -45,12 +49,92 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
     }
   };
 
-  const total =
-    store.cart?.reduce(
-      (sum, item) =>
-        sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
-      0
-    ) || 0;
+  // devuelve precio correcto según modo
+  const getItemPrice = (item) => {
+    if (isWholesale) {
+      if (Number(item.price_wholesale) > 0) return Number(item.price_wholesale);
+      return null; // mayorista sin precio → consultar
+    }
+    return Number(item.price) || 0;
+  };
+
+
+  // ===============================
+  // MENSAJE WHATSAPP
+  // ===============================
+  // ===============================
+  // TOTAL DEL CARRITO (VISIBLE EN UI)
+  // ===============================
+
+  const total = (store.cart || []).reduce((sum, item) => {
+    const price = getItemPrice(item);
+    if (price === null) return sum; // si es "consultar" no suma
+    return sum + price * (Number(item.quantity) || 0);
+  }, 0);
+
+
+  const buildWhatsAppMessage = () => {
+    if (!store.cart || store.cart.length === 0) return "";
+
+    const isWholesale = window.location.pathname.startsWith("/mayorista");
+
+    let message = "Hola! Quiero hacer el siguiente pedido:\n\n";
+
+    let total = 0;
+    let hasUnknownPrice = false;
+
+    store.cart.forEach((item) => {
+      const name = item.name;
+      const flavor = item.selectedFlavor ? ` (${item.selectedFlavor})` : "";
+      const qty = Number(item.quantity) || 0;
+
+      const wholesalePrice = Number(item.price_wholesale);
+      const retailPrice = Number(item.price);
+
+      const price = isWholesale
+        ? (wholesalePrice > 0 ? wholesalePrice : null)
+        : retailPrice;
+
+      message += `• ${qty} x ${name}${flavor}\n`;
+
+      if (price !== null) {
+        const subtotal = price * qty;
+        total += subtotal;
+
+        message += `   $${price.toLocaleString("es-AR")} c/u\n`;
+        message += `   Subtotal: $${subtotal.toLocaleString("es-AR")}\n\n`;
+      } else {
+        hasUnknownPrice = true;
+        message += `   Precio: Consultar\n\n`;
+      }
+    });
+
+    if (hasUnknownPrice) {
+      message += "TOTAL: Consultar\n\n";
+    } else {
+      message += `TOTAL: $${total.toLocaleString("es-AR")}\n\n`;
+    }
+
+    message += "Gracias!";
+
+    return encodeURIComponent(message);
+  };
+
+
+
+  // ===============================
+  // ABRIR WHATSAPP
+  // ===============================
+
+  const sendToWhatsApp = () => {
+    const phone = "5493534793366"; // ⚠️ CAMBIAR POR EL NÚMERO DEL CLIENTE
+    const text = buildWhatsAppMessage();
+
+    const url = `https://wa.me/${phone}?text=${text}`;
+
+    window.open(url, "_blank");
+  };
+
 
   const [postalCode, setPostalCode] = useState("");
   const [pickup, setPickup] = useState(false);
@@ -140,8 +224,11 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
                             {getTitle(item)}
                           </h4>
                           <p className="text-gray-900 font-semibold">
-                            ${Number(item.price || 0).toLocaleString("es-AR")}
+                            {getItemPrice(item) !== null
+                              ? `$${getItemPrice(item).toLocaleString("es-AR")}`
+                              : "Consultar"}
                           </p>
+
                         </div>
                         <button
                           onClick={() => actions.removeFromCart(item.id, item.selectedFlavor)}
@@ -187,8 +274,11 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
                         </div>
 
                         <div className="text-right font-semibold">
-                          ${(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString("es-AR")}
+                          {getItemPrice(item) !== null
+                            ? `$${(getItemPrice(item) * Number(item.quantity || 0)).toLocaleString("es-AR")}`
+                            : "Consultar"}
                         </div>
+
                       </div>
                     </div>
                   </div>
@@ -252,17 +342,12 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
           </div>
 
           <button
-            onClick={() => {
-              if (isRouteMode) navigate("/checkout");
-              else {
-                close();
-                navigate("/checkout");
-              }
-            }}
-            className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            onClick={sendToWhatsApp}
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
           >
-            INICIAR COMPRA
+            Pedir por WhatsApp
           </button>
+
 
           <div className="mt-4 text-center">
             {isRouteMode ? (

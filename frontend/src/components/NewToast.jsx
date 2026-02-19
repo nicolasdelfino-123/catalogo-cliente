@@ -54,8 +54,11 @@ export default function NewToast({ toast, onClose }) {
                         <>
                             <span className="text-sm">{data.product.name}</span>
                             <span className="text-sm font-medium">
-                                ${data.product.price?.toLocaleString("es-AR")}
+                                {data.product.price !== null && data.product.price !== undefined
+                                    ? `$${data.product.price.toLocaleString("es-AR")}`
+                                    : "Consultar"}
                             </span>
+
                         </>
                     )}
                 </div>

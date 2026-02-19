@@ -662,14 +662,24 @@ const getState = ({ getStore, getActions, setStore }) => {
 				console.log("💾 [addToCart] Carrito guardado. Total items:", updatedCart.length);
 
 				// 👇 Dispara el nuevo toast (NewToast.jsx)
+				const isWholesale = window.location.pathname.startsWith("/mayorista");
+
+				const wholesalePrice = Number(product.price_wholesale);
+				const retailPrice = Number(product.price);
+
+				const displayPrice = isWholesale
+					? (wholesalePrice > 0 ? wholesalePrice : null)
+					: retailPrice;
+
 				actions.showToast({
 					message: "Producto agregado al carrito 🛒",
 					product: {
 						name: product.name,
-						price: product.price,
+						price: displayPrice,
 						image: product.image_urls?.[0] || product.image_url || "/sin_imagen.jpg"
 					}
 				});
+
 			},
 
 
