@@ -128,8 +128,18 @@ def update_product(product_id):
                 setattr(product, field, data[field] or '')
 
         # numéricos / flags base
+      
+
         if 'price' in data:
             product.price = float(data['price'])
+
+        # ✅ guardar precio mayorista
+        if 'price_wholesale' in data:
+            try:
+                product.price_wholesale = float(data['price_wholesale']) if data['price_wholesale'] not in ("", None) else None
+            except:
+                product.price_wholesale = None
+
         if 'category_id' in data:
             product.category_id = int(data['category_id'])
         if 'is_active' in data:
