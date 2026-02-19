@@ -180,25 +180,29 @@ const ProductDetail = () => {
 
     };
 
+    const isWholesale = location.pathname.startsWith("/mayorista");
+    const prefix = isWholesale ? "/mayorista" : "";
+
     const handleBackToProducts = () => {
-        // ✅ Si venís de una categoría, volvés a esa ruta
+        // si venís de categoría
         if (location.state?.fromCategory) {
-            navigate(`/categoria/${location.state.fromCategory}`);
+            navigate(`${prefix}/categoria/${location.state.fromCategory}`);
             return;
         }
 
-        // 🧭 Si no hay state, pero el producto tiene category_name (fallback)
+        // fallback con categoría del producto
         if (product?.category_name && typeof product.category_name === 'string') {
             const slug = NAME_TO_SLUG[product.category_name.trim()];
             if (slug) {
-                navigate(`/categoria/${slug}`);
+                navigate(`${prefix}/categoria/${slug}`);
                 return;
             }
         }
 
-        // 🏠 Fallback final
-        navigate('/products');
+        // fallback final
+        navigate(`${prefix}/products`);
     };
+
 
     // Destino de "Volver": categoría si existe, sino /products
     const backHref =
@@ -282,9 +286,26 @@ const ProductDetail = () => {
                             )}
 
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-purple-600">
-                                    ${product.price?.toLocaleString('es-AR')}
-                                </span>
+                                {isWholesale ? (
+                                    product.price_wholesale > 0 ? (
+                                        <>
+                                            <span className="text-4xl font-bold text-purple-600">
+                                                ${Number(product.price_wholesale).toLocaleString('es-AR')}
+                                            </span>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                Precio mayorista
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm text-gray-400 italic">
+                                            Consultar
+                                        </span>
+                                    )
+                                ) : (
+                                    <span className="text-4xl font-bold text-purple-600">
+                                        ${Number(product.price).toLocaleString('es-AR')}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="mb-6">

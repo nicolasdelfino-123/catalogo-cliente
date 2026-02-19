@@ -411,9 +411,11 @@ export default function Header() {
                       <div
                         key={p.id}
                         onClick={() => {
-                          navigate(`/product/${p.id}`);
+                          const prefix = location.pathname.startsWith("/mayorista") ? "/mayorista" : "";
+                          navigate(`${prefix}/product/${p.id}`);
                           setMobileSearchOpen(false);
                         }}
+
                         className="flex items-center p-3 hover:bg-gray-300 cursor-pointer border-b border-gray-200 last:border-b-0"
                       >
                         <img
@@ -424,8 +426,16 @@ export default function Header() {
                         <div className="flex-1">
                           <div className="text-sm font-medium text-gray-800">{p.name}</div>
                           <div className="text-green-600 font-bold text-sm">
-                            ${Number(p.price).toLocaleString()}
+                            {location.pathname.startsWith("/mayorista")
+                              ? (
+                                p.price_wholesale && Number(p.price_wholesale) > 0
+                                  ? `$${Number(p.price_wholesale).toLocaleString("es-AR")}`
+                                  : "Consultar"
+                              )
+                              : `$${Number(p.price).toLocaleString("es-AR")}`
+                            }
                           </div>
+
                         </div>
                       </div>
                     ))}

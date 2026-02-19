@@ -48,8 +48,16 @@ export default function ProductCard({ product }) {
   const navigate = useNavigate()
 
   const location = useLocation();
-  const isWholesale = location.pathname.includes("mayorista");
-  const prefix = location.pathname.startsWith("/mayorista") ? "/mayorista" : "";
+  const isWholesale = location.pathname.startsWith("/mayorista");
+  const prefix = isWholesale ? "/mayorista" : "";
+
+  const wholesalePrice = Number(product?.price_wholesale);
+  const retailPrice = Number(product?.price);
+
+  const finalPrice = isWholesale
+    ? (wholesalePrice > 0 ? wholesalePrice : null)
+    : retailPrice;
+
 
 
 
@@ -159,22 +167,23 @@ export default function ProductCard({ product }) {
 
         {/* 4) Precio centrado */}
         <div className="mb-3 text-center">
-          <span className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">
-            ${
-              Number(
-                isWholesale && product.price_wholesale
-                  ? product.price_wholesale
-                  : product.price || 0
-              ).toLocaleString("es-AR")
-            }
-          </span>
+          {finalPrice !== null ? (
+            <span className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">
+              ${finalPrice.toLocaleString("es-AR")}
+            </span>
+          ) : (
+            <span className="text-sm text-gray-400 italic">
+              Consultar
+            </span>
+          )}
 
-          {isWholesale && product.price_wholesale && (
+          {isWholesale && finalPrice !== null && (
             <div className="text-xs text-gray-500 mt-1">
               Precio mayorista
             </div>
           )}
         </div>
+
 
 
         {/* 5) Cantidad + botón */}
