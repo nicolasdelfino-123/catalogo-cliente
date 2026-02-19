@@ -31,6 +31,15 @@ const getTitle = (it) => {
 
 export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClose }) {
   const { store, actions } = useContext(Context);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const [customerData, setCustomerData] = useState(() => {
+    const saved = localStorage.getItem("customerData");
+    return saved
+      ? JSON.parse(saved)
+      : { name: "", zone: "", payment: "" };
+  });
+
   const navigate = useNavigate();
   const location = useLocation();
   const isWholesale = location.pathname.startsWith("/mayorista");
@@ -57,6 +66,7 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
     }
     return Number(item.price) || 0;
   };
+
 
 
   // ===============================
@@ -117,7 +127,53 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
 
     message += "Gracias!";
 
-    return encodeURIComponent(message);
+    return message; // ⚠️ IMPORTANTE: SIN encode
+  };
+
+
+  const handleCustomerChange = (e) => {
+    const { name, value } = e.target;
+    setCustomerData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const selectPayment = (method) => {
+    setCustomerData(prev => ({ ...prev, payment: method }));
+  };
+
+
+  const sendOrder = () => {
+    if (!customerData.name || !customerData.zone || !customerData.payment) {
+      alert("Por favor completá tus datos");
+      return;
+    }
+
+    localStorage.setItem("customerData", JSON.stringify(customerData));
+
+    const phone = "5493534793366";
+
+    const orderText = buildWhatsAppMessage();
+
+    const extraData = `
+
+Datos del cliente:
+
+Nombre: ${customerData.name}
+Localidad / Zona: ${customerData.zone}
+Pago: ${customerData.payment}
+
+`;
+
+    const finalMessage = orderText.replace(
+      "Gracias!",
+      `${extraData}Gracias!`
+    );
+
+    // ✅ encode SOLO AQUÍ
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(finalMessage)}`;
+
+    window.open(url, "_blank");
+
+    setShowCheckout(false);
   };
 
 
@@ -342,7 +398,8 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
           </div>
 
           <button
-            onClick={sendToWhatsApp}
+            onClick={() => setShowCheckout(true)}
+
             className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
           >
             Pedir por WhatsApp
@@ -398,5 +455,92 @@ export default function Cart({ isOpen: controlledOpen, onClose: controlledOnClos
     </div>
   );
 
-  return createPortal(modalUI, document.body);
+
+
+  return createPortal(
+    <>
+      {modalUI}
+
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200]">
+          <div className="bg-white rounded-lg p-6 w-[90%] max-w-md shadow-xl">
+            <h2 className="text-xl font-semibold mb-4">
+              Datos para el pedido
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Guardamos tus datos para futuras compras.
+            </p>
+
+            <input
+              type="text"
+              name="name"
+              placeholder="Nombre"
+              value={customerData.name}
+              onChange={handleCustomerChange}
+              className="w-full border rounded px-3 py-2 mb-3"
+            />
+
+            <input
+              type="text"
+              name="zone"
+              placeholder="Zona / Localidad"
+              value={customerData.zone}
+              onChange={handleCustomerChange}
+              className="w-full border rounded px-3 py-2 mb-4"
+            />
+
+            <div className="mb-4">
+              <p className="text-sm font-medium mb-2">Forma de pago</p>
+
+              <div className="space-y-2 text-sm">
+                {["Transferencia", "Efectivo", "Coordinar"].map(method => {
+                  const selected = customerData.payment === method;
+
+                  return (
+                    <label
+                      key={method}
+                      className={`flex items-center gap-3 cursor-pointer border rounded-md px-3 py-2 transition
+      ${selected
+                          ? "bg-green-500 text-white border-green-600 shadow-sm"
+                          : "bg-white hover:bg-gray-50 border-gray-300"}
+      `}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        checked={selected}
+                        onChange={() => selectPayment(method)}
+                        className="accent-green-600"
+                      />
+                      {method}
+                    </label>
+                  );
+                })}
+
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCheckout(false)}
+                className="px-4 py-2 border rounded"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={sendOrder}
+                className="px-4 py-2 bg-purple-600 text-white rounded"
+              >
+                Enviar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>,
+    document.body
+  );
+
 }
