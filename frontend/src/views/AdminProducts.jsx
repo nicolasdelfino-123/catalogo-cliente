@@ -225,6 +225,9 @@ export default function AdminProducts() {
     const [editingPriceId, setEditingPriceId] = useState(null);
     const [editingPrice, setEditingPrice] = useState("");
 
+    const [editingStockId, setEditingStockId] = useState(null);
+    const [editingStock, setEditingStock] = useState("");
+
     const [editingWholesaleId, setEditingWholesaleId] = useState(null);
     const [editingWholesale, setEditingWholesale] = useState("");
 
@@ -346,7 +349,53 @@ export default function AdminProducts() {
             alert("Error actualizando precio mayorista");
         }
     };
+    const startEditStock = (p) => {
+        setEditingStockId(p.id);
+        setEditingStock(String(p.stock ?? 0));
+    };
 
+    const cancelEditStock = () => {
+        setEditingStockId(null);
+        setEditingStock("");
+    };
+
+    const confirmEditStock = async () => {
+        if (!editingStockId) return;
+
+        const n = Math.floor(Number(editingStock));
+        const newStock = Number.isFinite(n) && n >= 0 ? n : null;
+
+        if (newStock === null) {
+            alert("Stock inválido");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/admin/products/${editingStockId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ stock: newStock }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(`No se pudo actualizar el stock: ${data?.error || res.statusText}`);
+                return;
+            }
+
+            setProducts((prev) =>
+                prev.map((x) => (x.id === editingStockId ? { ...x, stock: newStock } : x))
+            );
+
+            cancelEditStock();
+        } catch (e) {
+            console.error(e);
+            alert("Error actualizando el stock");
+        }
+    };
 
 
     const cancelEditWholesale = () => {
@@ -474,8 +523,7 @@ export default function AdminProducts() {
             const enabled = shouldShowFlavors(form.category_id) && activeFlavors.length > 0
 
             // Si está activado el modo, el stock total se calcula como suma de los activos
-            const totalFromFlavors = sumActiveFlavorStock(catalog)
-            const finalStock = form.flavor_stock_mode ? totalFromFlavors : Number(form.stock ?? 0)
+            const finalStock = Number(form.stock ?? 0)
             // 🔒 Sanitiza y evita valores tipo "frutal" que causarían GET /frutal
             const normalizedImageUrl = (() => {
                 const u = String(form.image_url || "").trim();
@@ -488,18 +536,20 @@ export default function AdminProducts() {
             const payload = {
                 ...cleanForm,
                 price: Number(form.price) || 0,        // 👈 fuerza número
-                price_wholesale: (form.price_wholesale === "" || form.price_wholesale === null || form.price_wholesale === undefined)
-                    ? null
-                    : Number(form.price_wholesale),
+                price_wholesale:
+                    form.price_wholesale !== "" && form.price_wholesale !== null && form.price_wholesale !== undefined && !isNaN(Number(form.price_wholesale)) && Number(form.price_wholesale) > 0
+                        ? Number(form.price_wholesale)
+                        : null,
 
-                puffs: form.puffs === "" ? null : Number(form.puffs), // opcional: null si vacío
+
                 image_url: normalizedImageUrl,
                 short_description: form.short_description ?? "",
-                flavors: activeFlavors,
-                flavor_enabled: enabled,
-                flavor_catalog: catalog,
+
+                flavors: [],
+                flavor_enabled: false,
+                flavor_catalog: [],
                 stock: finalStock,
-                flavor_stock_mode: Boolean(form.flavor_stock_mode),
+                flavor_stock_mode: false,
             }
 
 
@@ -572,15 +622,15 @@ export default function AdminProducts() {
 
 
     // 👇 Sincroniza el stock general cuando el modo por sabor está activo
-    useEffect(() => {
-        if (!form) return
-        if (form.flavor_stock_mode) {
-            const total = sumActiveFlavorStock(form.flavor_catalog || [])
-            if (Number(form.stock) !== total) {
-                setForm(prev => ({ ...prev, stock: total }))
-            }
-        }
-    }, [form?.flavor_catalog, form?.flavor_stock_mode])
+    /*  useEffect(() => {
+         if (!form) return
+         if (form.flavor_stock_mode) {
+             const total = sumActiveFlavorStock(form.flavor_catalog || [])
+             if (Number(form.stock) !== total) {
+                 setForm(prev => ({ ...prev, stock: total }))
+             }
+         }
+     }, [form?.flavor_catalog, form?.flavor_stock_mode]) */
 
 
     return (
@@ -610,16 +660,14 @@ export default function AdminProducts() {
                 <button
                     onClick={() => setForm({
                         category_id: 1,
-                        flavor_stock_mode: false,
-                        flavor_catalog: [],   // 👈 importante: lista vacía para poder agregar sabores
-                        flavors: [],
                         is_active: true,
-                        // 👇 DEFAULT DE IMAGEN (ruta servida por tu backend)
+
                         image_url: sinImagen,
                         image_urls: [],
-                        puffs: "", // 👈 nuevo campo editable
-                        price: "", // 👈 opcional, pero prolijo
-                        price_wholesale: "", // ✅ NUEVO: precio mayorista opcional
+
+                        price: "",
+                        price_wholesale: "",
+                        stock: 0,
                     })}
 
 
@@ -719,7 +767,7 @@ export default function AdminProducts() {
 
                             <th className="p-2">Stock</th>
                             <th className="p-2">Categoría</th>
-                            <th className="p-2">Sabores</th>
+                            {/*  <th className="p-2">Sabores</th> */}
                             <th className="p-2">Estado</th>
                             <th className="p-2"></th>
                         </tr>
@@ -842,13 +890,53 @@ export default function AdminProducts() {
 
 
                                 <td className="p-2 text-center">
-                                    {form && form.id === p.id && form.flavor_stock_mode
-                                        ? sumActiveFlavorStock(form.flavor_catalog || [])
-                                        : p.stock}
+                                    {editingStockId === p.id ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <input
+                                                className="w-20 border rounded px-2 py-1 text-right"
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                inputMode="numeric"
+                                                autoFocus
+                                                value={editingStock}
+                                                onChange={(e) => setEditingStock(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") confirmEditStock();
+                                                    if (e.key === "Escape") cancelEditStock();
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-green-50"
+                                                onClick={confirmEditStock}
+                                            >
+                                                ✅
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-red-50"
+                                                onClick={cancelEditStock}
+                                            >
+                                                ✖️
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span>{p.stock ?? 0}</span>
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                onClick={() => startEditStock(p)}
+                                            >
+                                                ✏️
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
 
                                 <td className="p-2 text-center">{ID_TO_CATEGORY_NAME[p.category_id]}</td>
-                                <td className="p-2 text-center">
+                                {/*  <td className="p-2 text-center">
                                     {p.flavor_enabled ? (
                                         <span
                                             className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"
@@ -860,7 +948,7 @@ export default function AdminProducts() {
                                     ) : (
                                         <span className="text-xs text-gray-500">Sin sabores</span>
                                     )}
-                                </td>
+                                </td> */}
                                 <td className="p-2 text-center">
                                     <span
                                         className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
@@ -994,111 +1082,122 @@ export default function AdminProducts() {
                             </div>
                         </div>
 
+                        {/*
+<label className="block text-sm font-medium text-gray-700 mb-1">
+  Puffs (caladas)
+</label>
+<input
+  className="w-full border rounded px-3 py-2"
+  placeholder="Ej: 10000"
+  type="number"
+  min={0}
+  step={1}
+  inputMode="numeric"
+  pattern="\d*"
+  {...noSpin}
+  value={
+    form.puffs === "" ||
+    form.puffs === null ||
+    form.puffs === undefined
+      ? ""
+      : form.puffs
+  }
+  onChange={(e) => {
+    const v = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      puffs: v === "" ? "" : Math.max(0, Math.floor(Number(v))),
+    }));
+  }}
+/>
 
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Puffs (caladas)</label>
+{shouldShowFlavors(form.category_id) && (
+  <>
+    <label className="flex items-center gap-2 mb-2">
+      <input
+        type="checkbox"
+        checked={Boolean(form.flavor_stock_mode)}
+        onChange={(e) => {
+          const checked = e.target.checked;
+          setForm((prev) => {
+            const safeCatalog = Array.isArray(prev.flavor_catalog)
+              ? prev.flavor_catalog
+              : [];
+            return {
+              ...prev,
+              flavor_stock_mode: checked,
+              flavor_enabled: checked ? true : prev.flavor_enabled,
+              flavor_catalog: safeCatalog,
+              stock: checked
+                ? sumActiveFlavorStock(safeCatalog)
+                : prev.stock,
+            };
+          });
+        }}
+      />
+      Usar stock por sabor
+    </label>
+
+    {form.flavor_stock_mode && (
+      <div className="space-y-2">
+        <label className="block text-sm font-medium mb-1">
+          Sabores
+        </label>
+
+        <FlavorPills
+          catalog={
+            Array.isArray(form.flavor_catalog)
+              ? form.flavor_catalog
+              : (form.flavors || []).map((n) => ({
+                  name: n,
+                  active: true,
+                  stock: 0,
+                }))
+          }
+          onChange={(next) =>
+            setForm((prev) => {
+              const activos = next.filter((x) => x.active);
+              const total = sumActiveFlavorStock(next);
+              return {
+                ...prev,
+                flavor_catalog: next,
+                flavors: activos.map((x) => x.name),
+                stock: prev.flavor_stock_mode ? total : prev.stock,
+              };
+            })
+          }
+        />
+
+        <div className="text-xs text-gray-600">
+          Total (activos):
+          <strong>
+            {sumActiveFlavorStock(form.flavor_catalog || [])}
+          </strong>
+        </div>
+      </div>
+    )}
+  </>
+)}
+*/}
+                        {/* Stock general: solo visible si NO usamos stock por sabor */}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Stock
+                        </label>
+
                         <input
                             className="w-full border rounded px-3 py-2"
-                            placeholder="Ej: 10000"
+                            placeholder="Stock"
                             type="number"
                             min={0}
                             step={1}
-                            inputMode="numeric"
-                            pattern="\d*"
                             {...noSpin}
-                            value={form.puffs === "" || form.puffs === null || form.puffs === undefined ? "" : form.puffs}
+                            value={Number.isFinite(Number(form.stock)) ? form.stock : 0}
                             onChange={(e) => {
-                                const v = e.target.value;
-                                // mantené lo que escribe el usuario; sólo normalizamos a entero si hay número
-                                setForm(prev => ({
-                                    ...prev,
-                                    puffs: v === "" ? "" : Math.max(0, Math.floor(Number(v))),
-                                }));
+                                const n = Math.max(0, Math.floor(Number(e.target.value) || 0))
+                                setForm({ ...form, stock: n })
                             }}
+                            required
                         />
-
-
-
-                        {/* Toggle modo stock por sabor (solo si hay sabores/categoría aplica) */}
-                        {shouldShowFlavors(form.category_id) && (
-                            <>
-                                {/* ÚNICO checkbox de modo por sabor */}
-                                <label className="flex items-center gap-2 mb-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={Boolean(form.flavor_stock_mode)}
-                                        onChange={(e) => {
-                                            const checked = e.target.checked
-                                            setForm(prev => {
-                                                const safeCatalog = Array.isArray(prev.flavor_catalog) ? prev.flavor_catalog : []
-                                                return {
-                                                    ...prev,
-                                                    flavor_stock_mode: checked,
-                                                    // al activarlo, habilitamos editor y sincronizamos stock
-                                                    flavor_enabled: checked ? true : prev.flavor_enabled,
-                                                    flavor_catalog: safeCatalog, // asegura array para poder agregar sabores
-                                                    stock: checked ? sumActiveFlavorStock(safeCatalog) : prev.stock,
-                                                }
-                                            })
-                                        }}
-                                    />
-                                    Usar stock por sabor (recomendado si cada sabor tiene stock propio)
-                                </label>
-
-                                {/* Editor de sabores: visible SOLO si el modo por sabor está activo */}
-                                {form.flavor_stock_mode && (
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium mb-1">
-                                            Sabores (activar/desactivar y stock)
-                                        </label>
-
-                                        <FlavorPills
-                                            catalog={Array.isArray(form.flavor_catalog)
-                                                ? form.flavor_catalog
-                                                : (form.flavors || []).map((n) => ({ name: n, active: true, stock: 0 }))
-                                            }
-                                            onChange={(next) =>
-                                                setForm(prev => {
-                                                    const activos = next.filter(x => x.active)
-                                                    const total = sumActiveFlavorStock(next)
-                                                    return {
-                                                        ...prev,
-                                                        flavor_catalog: next,
-                                                        flavors: activos.map(x => x.name),
-                                                        stock: prev.flavor_stock_mode ? total : prev.stock,
-                                                    }
-                                                })
-                                            }
-                                        />
-
-                                        <div className="text-xs text-gray-600">
-                                            Total (activos): <strong>{sumActiveFlavorStock(form.flavor_catalog || [])}</strong> unidades
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {/* Stock general: solo visible si NO usamos stock por sabor */}
-                        {!form.flavor_stock_mode && (
-                            <>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                                <input
-                                    className="w-full border rounded px-3 py-2"
-                                    placeholder="Stock"
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    {...noSpin}
-                                    value={Number.isFinite(Number(form.stock)) ? form.stock : 0}
-                                    onChange={(e) => {
-                                        const n = Math.max(0, Math.floor(Number(e.target.value) || 0))
-                                        setForm({ ...form, stock: n })
-                                    }}
-                                    required
-                                />
-
-                            </>
-                        )}
 
                         <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del producto</label>
 

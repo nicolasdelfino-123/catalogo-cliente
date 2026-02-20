@@ -66,7 +66,15 @@ def create_product():
             if r not in data:
                 return jsonify({'error': f'Falta el campo requerido: {r}'}), 400
 
-        # ===== NUEVO: soporte de stock por sabor =====
+        # ===== precio mayorista opcional =====
+        price_wholesale = None
+        if data.get('price_wholesale') not in ("", None):
+            try:
+                price_wholesale = float(data['price_wholesale'])
+            except:
+                price_wholesale = None
+
+        # ===== soporte de stock por sabor =====
         catalog = _normalize_catalog(data.get('flavor_catalog'))
         flavor_stock_mode = bool(data.get('flavor_stock_mode', False))
         flavor_enabled = bool(data.get('flavor_enabled', False))
@@ -86,6 +94,7 @@ def create_product():
             description=data.get('description', ''),
             short_description=data.get('short_description', ''),
             price=float(data['price']),
+            price_wholesale=price_wholesale,   # ✅ AHORA SE GUARDA
             stock=computed_stock,
             category_id=int(data['category_id']),
             image_url=data.get('image_url', ''),
@@ -99,13 +108,17 @@ def create_product():
             # catálogo completo + modo
             flavor_catalog=catalog,
             flavor_stock_mode=flavor_stock_mode,
+
+            # puffs opcional (no molesta si queda)
             puffs=(int(data['puffs']) if str(data.get('puffs','')).strip().isdigit() else None),
+
             created_at=now_cba_naive(),
         )
 
         db.session.add(product)
         db.session.commit()
         return jsonify({'message': 'Producto creado exitosamente', 'product': product.serialize()}), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Error al crear producto: {str(e)}'}), 500
