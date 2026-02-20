@@ -222,6 +222,10 @@ Pago: ${customerData.payment}
 
     window.open(url, "_blank");
 
+    // vaciar carrito
+    actions.clearCart?.();   // o resetCart, según tu store
+    localStorage.removeItem("cart");
+
     setShowCheckout(false);
   };
 
