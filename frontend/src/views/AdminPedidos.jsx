@@ -63,7 +63,7 @@ export default function AdminPedidos() {
                         <tr>
                             <th className="p-2 text-left">#</th>
                             <th className="p-2 text-left">Cliente</th>
-                            <th className="p-2 text-left">Email</th>
+                            {/*            <th className="p-2 text-left">Email</th> */}
                             <th className="p-2 text-left">Total</th>
                             <th className="p-2 text-left">Estado</th>
                             <th className="p-2 text-left">Fecha</th>
@@ -81,7 +81,7 @@ export default function AdminPedidos() {
 
 
                                 <td className="p-2">{o.customer_first_name} {o.customer_last_name}</td>
-                                <td className="p-2">{o.customer_email}</td>
+                                {/*     <td className="p-2">{o.customer_email}</td> */}
                                 <td className="p-2">${o.total_amount?.toLocaleString() || 0}</td>
                                 <td className="p-2">
                                     <span
@@ -106,14 +106,14 @@ export default function AdminPedidos() {
                                     >
                                         Ver detalle
                                     </button>
-                                    {o.status !== "enviado" && (
+                                    {/* {o.status !== "enviado" && (
                                         <button
                                             onClick={() => updateStatus(o.id, "enviado")}
                                             className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
                                         >
                                             Marcar enviado
                                         </button>
-                                    )}
+                                    )} */}
                                 </td>
                             </tr>
                         ))}
@@ -135,7 +135,7 @@ export default function AdminPedidos() {
                         <h2 className="text-xl font-semibold mb-3">
                             Pedido #{selected.public_order_number || selected.id}
 
-                            <span className="text-sm text-gray-500">
+                            <span className="block text-sm text-gray-500 mt-1">
                                 {new Date(selected.created_at).toLocaleString("es-AR")}
                             </span>
                         </h2>
@@ -148,9 +148,9 @@ export default function AdminPedidos() {
                                 <strong>Cliente:</strong> {selected.customer_first_name}{" "}
                                 {selected.customer_last_name}
                             </p>
-                            <p>
+                            {/*   <p>
                                 <strong>Email:</strong> {selected.customer_email}
-                            </p>
+                            </p> */}
                             {selected.customer_phone && (
                                 <p>
                                     <strong>Teléfono:</strong> {selected.customer_phone}
@@ -163,8 +163,13 @@ export default function AdminPedidos() {
                             )}
                             {selected.payment_method && (
                                 <p>
-                                    <strong>Método de pago:</strong>{" "}
-                                    {selected.payment_method === "mercadopago" ? "Mercado Pago" : "Transferencia bancaria"}
+                                    <strong>Forma de pago:</strong>{" "}
+                                    {{
+                                        transferencia: "Transferencia",
+                                        efectivo: "Efectivo",
+                                        coordinar: "A coordinar",
+                                        mercadopago: "Mercado Pago",
+                                    }[selected.payment_method] || selected.payment_method}
                                 </p>
                             )}
 
@@ -308,7 +313,7 @@ export default function AdminPedidos() {
                             </table>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between">
+                        {/* <div className="mt-4 flex items-center justify-between">
                             <input
                                 type="text"
                                 placeholder="Código de envío (opcional)"
@@ -363,7 +368,7 @@ export default function AdminPedidos() {
 
                             )}
                         </div>
-
+ */}
                     </div>
                 </div>
             )}
