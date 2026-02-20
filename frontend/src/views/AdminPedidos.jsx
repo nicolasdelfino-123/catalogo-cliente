@@ -65,7 +65,7 @@ export default function AdminPedidos() {
                             <th className="p-2 text-left">Cliente</th>
                             {/*            <th className="p-2 text-left">Email</th> */}
                             <th className="p-2 text-left">Total</th>
-                            <th className="p-2 text-left">Estado</th>
+                            {/*  <th className="p-2 text-left">Estado</th> */}
                             <th className="p-2 text-left">Fecha</th>
                             <th className="p-2 text-center">Acciones</th>
                         </tr>
@@ -83,7 +83,7 @@ export default function AdminPedidos() {
                                 <td className="p-2">{o.customer_first_name} {o.customer_last_name}</td>
                                 {/*     <td className="p-2">{o.customer_email}</td> */}
                                 <td className="p-2">${o.total_amount?.toLocaleString() || 0}</td>
-                                <td className="p-2">
+                                {/*     <td className="p-2">
                                     <span
                                         className={`px-2 py-1 rounded text-xs ${o.status === "enviado"
                                             ? "bg-green-100 text-green-800"
@@ -95,7 +95,7 @@ export default function AdminPedidos() {
                                         {o.status || "pendiente"}
                                     </span>
 
-                                </td>
+                                </td> */}
                                 <td className="p-2">
                                     {new Date(o.created_at).toLocaleString("es-AR")}
                                 </td>
@@ -132,134 +132,54 @@ export default function AdminPedidos() {
                             ✕
                         </button>
 
-                        <h2 className="text-xl font-semibold mb-3">
-                            Pedido #{selected.public_order_number || selected.id}
 
-                            <span className="block text-sm text-gray-500 mt-1">
+
+
+                        {/* HEADER PEDIDO */}
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold">
+                                Pedido #{selected.public_order_number || selected.id}
+                            </h2>
+
+                            <p className="text-sm text-gray-500">
                                 {new Date(selected.created_at).toLocaleString("es-AR")}
-                            </span>
-                        </h2>
-
-
-
-
-                        <div className="mb-3 space-y-1">
-                            <p>
-                                <strong>Cliente:</strong> {selected.customer_first_name}{" "}
-                                {selected.customer_last_name}
                             </p>
-                            {/*   <p>
-                                <strong>Email:</strong> {selected.customer_email}
-                            </p> */}
-                            {selected.customer_phone && (
-                                <p>
-                                    <strong>Teléfono:</strong> {selected.customer_phone}
-                                </p>
-                            )}
-                            {selected.customer_dni && (
-                                <p>
-                                    <strong>DNI:</strong> {selected.customer_dni}
-                                </p>
-                            )}
-                            {selected.payment_method && (
-                                <p>
-                                    <strong>Forma de pago:</strong>{" "}
-                                    {{
-                                        transferencia: "Transferencia",
-                                        efectivo: "Efectivo",
-                                        coordinar: "A coordinar",
-                                        mercadopago: "Mercado Pago",
-                                    }[selected.payment_method] || selected.payment_method}
-                                </p>
-                            )}
-
-
-                            {selected.customer_comment && (
-                                <p className="mt-2 text-sm text-gray-600">
-                                    <strong>Comentario:</strong> {selected.customer_comment}
-                                </p>
-                            )}
                         </div>
 
-                        <div className="border-t border-b py-3 mb-3 space-y-1">
-                            <h3 className="text-lg font-medium mt-3 mb-1">Datos de envío</h3>
+                        {/* CLIENTE */}
+                        <div className="mb-4 space-y-1">
                             <p>
-                                <strong>Entrega/Retiro:</strong>{" "}
-                                {typeof selected.shipping_address === "string"
-                                    ? selected.shipping_address
-                                    : selected.shipping_address?.label || "No informado"}
+                                <strong>Cliente:</strong> {selected.customer_first_name}
                             </p>
 
-                            {typeof selected.shipping_address === "object" && (
-                                <>
-                                    {selected.shipping_address?.address && (
-                                        <p>
-                                            <strong>Dirección:</strong> {selected.shipping_address.address}
-                                        </p>
-                                    )}
-                                    {selected.shipping_address?.apartment && (
-                                        <p>
-                                            <strong>Piso/Depto:</strong> {selected.shipping_address.apartment}
-                                        </p>
-                                    )}
-                                    {selected.shipping_address?.city && (
-                                        <p>
-                                            <strong>Ciudad:</strong> {selected.shipping_address.city}
-                                        </p>
-                                    )}
-                                    {selected.shipping_address?.province && (
-                                        <p>
-                                            <strong>Provincia:</strong> {selected.shipping_address.province}
-                                        </p>
-                                    )}
-                                    {selected.shipping_address?.country && (
-                                        <p>
-                                            <strong>País:</strong> {selected.shipping_address.country}
-                                        </p>
-                                    )}
-                                    {(selected.shipping_address?.postalCode || selected.shipping_address?.zip_code) && (
-                                        <p>
-                                            <strong>Código Postal:</strong>{" "}
-                                            {selected.shipping_address?.postalCode || selected.shipping_address?.zip_code}
-                                        </p>
-                                    )}
-
-
-                                    {(selected.shipping_address?.phone || selected?.billing_address?.phone) && (
-                                        <p>
-                                            <strong>Teléfono:</strong>{" "}
-                                            {selected.shipping_address?.phone || selected?.billing_address?.phone}
-                                        </p>
-                                    )}
-
-
-
-                                    {selected.shipping_address?.cost !== undefined && (
-                                        <p>
-                                            <strong>Costo de envío:</strong>{" "}
-                                            {selected.shipping_address.cost === 0
-                                                ? "Gratis"
-                                                : `$${selected.shipping_address.cost.toLocaleString()}`}
-                                        </p>
-                                    )}
-                                </>
-                            )}
-
                             <p>
-                                <strong>Estado del pedido:</strong>{" "}
-                                <span
-                                    className={`px-2 py-1 rounded text-xs ${selected.status === "enviado"
-                                        ? "bg-green-100 text-green-800"
-                                        : selected.payment_method === "transferencia"
-                                            ? "bg-orange-100 text-orange-800"
-                                            : "bg-yellow-100 text-yellow-800"
-                                        }`}
-                                >
-                                    {selected.status || "pendiente"}
-                                </span>
+                                <strong>Forma de pago:</strong>{" "}
+                                {{
+                                    transferencia: "Transferencia",
+                                    efectivo: "Efectivo",
+                                    coordinar: "A coordinar",
+                                }[selected.payment_method] || selected.payment_method}
                             </p>
-
                         </div>
+
+                        {/* ENVÍO */}
+                        <div className="mb-4">
+                            <h3 className="font-semibold mb-1">Datos de envío</h3>
+
+                            <p>
+                                <strong>Ubicación:</strong>{" "}
+                                {selected.shipping_address?.city ||
+                                    selected.shipping_address?.address ||
+                                    "Retiro en local"}
+                            </p>
+                        </div>
+
+
+
+
+
+
+
 
 
                         {/* Productos */}
