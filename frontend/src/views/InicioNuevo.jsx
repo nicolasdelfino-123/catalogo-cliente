@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Context } from "../js/store/appContext.jsx";
 import ProductCardPerfumes from "../components/ui/cards/ProductCardPerfumes.jsx";
 import HomeContact from "../components/home/HomeContact.jsx";
+import banner from "../assets/banner_arabe.jpg";
 
 export default function InicioNuevo() {
     const { store, actions } = useContext(Context);
@@ -40,14 +41,37 @@ export default function InicioNuevo() {
     return (
         <div className="min-h-screen bg-gray-50">
 
-            {/* HERO SIMPLE */}
-            <section className="bg-gray-900 text-white py-20 text-center">
-                <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                    Perfumes Árabes
-                </h1>
-                <p className="text-lg text-gray-300">
-                    Catálogo actualizado • Pedidos por WhatsApp
-                </p>
+
+            {/* HERO PREMIUM CON IMAGEN IMPORTADA */}
+            <section className="relative h-[75vh] min-h-[450px] flex items-center justify-center text-center overflow-hidden">
+
+                {/* Fondo con tu imagen */}
+                <div
+                    className="absolute inset-0 bg-center bg-cover animate-zoomSlow"
+                    style={{ backgroundImage: `url(${banner})` }}
+                />
+
+                {/* Overlay oscuro elegante */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
+
+                {/* Contenido */}
+                <div className="relative z-10 px-6 max-w-3xl">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-wide">
+                        Perfumes Árabes
+                    </h1>
+
+                    <p className="text-lg md:text-xl text-gray-200 mb-6">
+                        Fragancias intensas • Elegancia oriental • Exclusividad
+                    </p>
+
+                    <a
+                        href={WA_URL}
+                        className="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white rounded-lg font-semibold hover:opacity-90 transition"
+                    >
+                        Consultar por WhatsApp
+                    </a>
+                </div>
+
             </section>
 
             {/* PRODUCTOS */}

@@ -7,6 +7,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo22 from '@/assets/logo-22.png' */
 import zarpados from '@/assets/zarpados-22.png'
 import { withWholesale } from "../utils/navigation.js";
+import { Search, ShoppingBag } from "lucide-react";
 
 const API = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, "") || "";
 
@@ -183,7 +184,7 @@ export default function Header() {
   return (
     <header
       className={[
-        "sticky top-0 z-50 bg-gray-900/90 backdrop-blur overflow-visible",
+        "sticky top-0 z-50 bg-[#0b0b0d]/90 backdrop-blur border-b border-yellow-600/20 overflow-visible",
         "transition-all duration-300",
         isScrolled ? "shadow-lg" : "shadow-none",
         show ? "translate-y-0" : "-translate-y-full"
@@ -201,7 +202,7 @@ export default function Header() {
               className="bg-transparent border-0 p-0 m-0"
               style={{ backgroundColor: 'transparent' }}
             >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {isMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -239,7 +240,7 @@ export default function Header() {
           </div> */}
 
           {/* Navigation - Desktop */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-10 font-serif tracking-wider text-sm uppercase">
             <Link to={withWholesale("/inicio")} className="hover:text-purple-400 transition-colors text-gray-300">Inicio</Link>
 
 
@@ -247,7 +248,7 @@ export default function Header() {
             <div className="relative" ref={productsDropdownRef}>
               <button
                 onClick={() => setProductsDropdownOpen(!productsDropdownOpen)}
-                className="flex items-center text-gray-300 hover:text-purple-400 bg-transparent p-0 border-0 rounded-none appearance-none focus:outline-none focus:ring-0 hover:bg-transparent active:bg-transparent"
+                className="flex items-center text-gray-300 hover:text-purple-400 bg-transparent p-0 border-0 rounded-none appearance-none focus:outline-none focus:ring-0 hover:bg-transparent active:bg-transparent uppercase"
                 style={{ backgroundColor: 'transparent', boxShadow: 'none' }}
               >
 
@@ -292,14 +293,14 @@ export default function Header() {
 
             <Link
               to="/mayorista"
-              className="hover:text-purple-400 transition-colors text-gray-300"
+              className="text-gray-300 hover:text-amber-300 transition-all duration-300"
             >
               Mayoristas
             </Link>
             <a
               href="/inicio#contacto"
               onClick={goToContact}
-              className="hover:text-purple-400 transition-colors text-gray-300"
+              className="text-gray-300 hover:text-amber-300 transition-all duration-300"
             >
               Contacto
             </a>
@@ -317,10 +318,7 @@ export default function Header() {
               aria-label="Buscar productos"
               title="Buscar"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Search className="w-5 h-5 stroke-[1.5] text-gray-300 hover:text-amber-300 transition-colors duration-300" />
             </button>
 
 
@@ -332,11 +330,9 @@ export default function Header() {
               aria-label="Abrir carrito"
               title="Carrito"
             >
-              <svg className={["w-6 h-6", isScrolled ? "scale-95" : "scale-100", "transition-transform"].join(" ")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m0 0h9" />
-              </svg>
+              <ShoppingBag className="w-5 h-5 stroke-[1.25] text-gray-300 hover:text-amber-300 transition-colors duration-300" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-amber-500 text-black font-semibold px-1.5 py-[2px] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemsCount}
                 </span>
               )}
@@ -355,10 +351,7 @@ export default function Header() {
               aria-label="Buscar productos"
               title="Buscar"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Search className="w-5 h-5 stroke-[1.5] text-gray-300 hover:text-amber-300 transition-colors duration-300" />
             </button>
 
             <button
@@ -368,11 +361,9 @@ export default function Header() {
               aria-label="Abrir carrito"
               title="Carrito"
             >
-              <svg className={["w-6 h-6", isScrolled ? "scale-95" : "scale-100", "transition-transform"].join(" ")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m0 0h9" />
-              </svg>
+              <ShoppingBag className="w-5 h-5 stroke-[1.25] text-gray-300 hover:text-amber-300 transition-colors duration-300" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-amber-500 text-black font-semibold px-1.5 py-[2px] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cartItemsCount}
                 </span>
               )}
@@ -472,7 +463,7 @@ export default function Header() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <Link
                 to={withWholesale("/inicio")}
-                className="block px-3 py-2 hover:text-purple-400 transition-colors"
+                className="text-gray-300 hover:text-amber-300 transition-all duration-300"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Inicio
@@ -484,7 +475,7 @@ export default function Header() {
                 <div className="ml-4 space-y-1">
                   <Link
                     to={withWholesale("/products")}
-                    className="block px-3 py-1 text-sm hover:text-purple-400 transition-colors"
+                    className="text-gray-300 hover:text-amber-300 transition-all duration-300"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Ver todos
@@ -519,45 +510,42 @@ export default function Header() {
 
 
               {/* Mobile: Ingresar solo si NO hay usuario */}
-              {store.user ? (
-                <div className="border-t border-gray-700 pt-2 ">
-                  <div className="px-3 py-2 text-sm text-gray-300 ">Hola, {store.user.name}</div>
+              {
+                store.user && (
+                  <div className="border-t border-gray-700 pt-2">
 
-                  {/* 🔹 BOTÓN ADMIN SOLO PARA ADMIN - JUSTO AQUÍ */}
-                  {store.user.email === "admin@vapestore.com" && (
+                    <div className="px-3 py-2 text-sm text-gray-300">
+                      Hola Administrador
+                    </div>
+
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        navigate("/admin/login");   // redirige al panel admin
+                        navigate("/admin/login");
                       }}
-                      className="block w-full text-left px-3 py-2 text-purple-400 hover:text-purple-300 transition-colors"
+                      className="block w-full text-left px-3 py-2 hover:text-amber-300 transition-all duration-300"
                     >
                       Panel Admin
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => { actions.logoutUser(); setIsMenuOpen(false); }}
-                    className="block w-full text-left px-3 py-2 hover:text-purple-400 transition-colors"
-                  >
-                    Salir
-                  </button>
-                </div>
-              ) : (
-                <div className="border-t border-gray-700 pt-2">
-                  <Link
-                    to="/login"
-                    className="block px-3 py-2 hover:text-purple-400 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Ingresar
-                  </Link>
-                </div>
-              )}
+                    <button
+                      onClick={() => {
+                        actions.logoutUser();
+                        setIsMenuOpen(false);
+                      }}
+                      className="block w-full text-left px-3 py-2 hover:text-amber-300 transition-all duration-300"
+                    >
+                      Cerrar sesión
+                    </button>
+
+                  </div>
+                )
+              }
             </div>
           </div>
         )}
       </div>
+
 
       <Cart isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </header>

@@ -15,13 +15,8 @@ export default function AccountDropdown() {
     }, []);
 
     // Si NO hay usuario -> mostrar "Ingresar"
-    if (!store.user) {
-        return (
-            <Link to="/login" className="hover:text-purple-400 transition-colors text-gray-300">
-                Ingresar
-            </Link>
-        );
-    }
+    console.log("USER:", store.user);
+    if (!store.user) return null;
 
     return (
         <div className="relative" ref={ref}>
@@ -39,30 +34,33 @@ export default function AccountDropdown() {
             </button>
 
             {open && (
-                <div className="absolute right-0 mt-2 w-60 bg-white text-gray-800 rounded-xl shadow-lg p-2 z-50">
-                    <MenuItem to="/cuenta" text="Escritorio" onClick={() => setOpen(false)} />
-                    <MenuItem to="/cuenta/pedidos" text="Pedidos" onClick={() => setOpen(false)} />
-                    <MenuItem to="/cuenta/direcciones" text="Direcciones" onClick={() => setOpen(false)} />
-                    <MenuItem to="/cuenta/detalles" text="Detalles de la cuenta" onClick={() => setOpen(false)} />
+                <div className="absolute right-0 mt-2 w-56 bg-[#0f0f10] text-gray-200 rounded-xl shadow-2xl border border-yellow-500/20 p-2 z-50">
+
+                    <div className="px-3 py-2 text-sm text-gray-400">
+                        Hola Administrador
+                    </div>
+
                     <button
-                        className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100"
-                        onClick={() => { actions.logoutUser(); setOpen(false); }}
+                        onClick={() => {
+                            setOpen(false);
+                            navigate("/admin/login");
+                        }}
+                        className="block w-full text-left px-3 py-2 text-gray-300 bg-transparent rounded-md hover:bg-[#1c1c1c] hover:text-amber-300 transition-all duration-200"
+                    >
+                        Panel Admin
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            actions.logoutUser();
+                            setOpen(false);
+                            navigate("/");
+                        }}
+                        className="block w-full text-left px-3 py-2 text-gray-300 bg-transparent rounded-md hover:bg-[#1c1c1c] hover:text-amber-300 transition-all duration-200"
                     >
                         Cerrar sesión
                     </button>
 
-                    {/* Botón Admin solo si el usuario es admin@vapestore.com */}
-                    {store.user?.email === "admin@vapestore.com" && (
-                        <button
-                            onClick={() => {
-                                setOpen(false);
-                                navigate("/admin/login");
-                            }}
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                            Admin
-                        </button>
-                    )}
                 </div>
             )}
         </div>
