@@ -100,6 +100,7 @@ class Product(db.Model):
     puffs: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     nicotine_mg: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     volume_ml: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    volume_options: Mapped[Optional[list[dict]]] = mapped_column(JSONB, nullable=True, default=list)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=now_cba_naive)
 
@@ -163,6 +164,7 @@ class Product(db.Model):
             'puffs': self.puffs,
             'nicotine_mg': self.nicotine_mg,
             'volume_ml': self.volume_ml,
+            'volume_options': self.volume_options or [],
             'created_at': self.created_at.isoformat(),
             'price_wholesale': float(self.price_wholesale) if self.price_wholesale else None,
         }

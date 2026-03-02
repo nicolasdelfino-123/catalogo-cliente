@@ -500,7 +500,7 @@ export default function ProductGridNuevo({ category, hideFilters = false }) {
         const isWholesale = location.pathname.startsWith("/mayorista");
         const base = isWholesale ? "/mayorista" : "";
 
-        window.scrollTo({ top: 0, behavior: "instant" });
+        window.scrollTo({ top: 0, behavior: "auto" });
         navigate(`${base}/categoria/${newSlug}`);
     };
 
@@ -525,6 +525,7 @@ export default function ProductGridNuevo({ category, hideFilters = false }) {
         // si tenemos página guardada, primero forzamos esa página
         const forcedPage = Number(sessionStorage.getItem("lastProductPage"));
         if (Number.isFinite(forcedPage) && forcedPage > 0 && forcedPage !== currentPage) {
+            sessionStorage.removeItem("lastProductPage");
             setCurrentPage(forcedPage);
             return;
         }
@@ -547,6 +548,7 @@ export default function ProductGridNuevo({ category, hideFilters = false }) {
 
         // Si no estamos en la página correcta, la seteamos y esperamos próximo render.
         if (targetPage !== currentPage) {
+            sessionStorage.removeItem("lastProductPage");
             setCurrentPage(targetPage);
             return;
         }
@@ -557,10 +559,11 @@ export default function ProductGridNuevo({ category, hideFilters = false }) {
 
         el.scrollIntoView({
             block: "center",
-            behavior: "instant"
+            behavior: "auto"
         });
 
         sessionStorage.removeItem("lastProductId");
+        sessionStorage.removeItem("lastProductPage");
         gridRestoredRef.current = true;
     }, [sortedProducts, paginatedProducts, currentPage, itemsPerPage]);
 

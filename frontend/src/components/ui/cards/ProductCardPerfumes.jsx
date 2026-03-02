@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useMemo, useEffect } from "react";
 import { Context } from "../../../js/store/appContext.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -20,10 +20,30 @@ const toAbsUrl = (u = "") => {
     return `${API}/${u}`;
 };
 
+const parseMl = (value) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return Math.floor(value);
+    const text = String(value).trim();
+    if (!text) return null;
+    const match = text.match(/\d+/);
+    if (!match) return null;
+    const n = Number(match[0]);
+    return Number.isFinite(n) ? Math.floor(n) : null;
+};
+
+const parsePrice = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const normalized = String(value).replace(/\./g, "").replace(",", ".").trim();
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : null;
+};
+
 export default function ProductCardPerfumes({ product, returnTo, isGrid = true }) {
 
     const [quantity, setQuantity] = useState(1);
     const [selectedFlavor, setSelectedFlavor] = useState("");
+    const [selectedSizeMl, setSelectedSizeMl] = useState("");
 
     const { actions } = useContext(Context);
     const navigate = useNavigate();
@@ -32,8 +52,102 @@ export default function ProductCardPerfumes({ product, returnTo, isGrid = true }
     const isWholesale = location.pathname.startsWith("/mayorista");
     const prefix = isWholesale ? "/mayorista" : "";
 
-    const wholesalePrice = Number(product?.price_wholesale);
-    const retailPrice = Number(product?.price);
+    const sizeOptions = useMemo(() => {
+        const rows = [];
+
+        const baseMl = parseMl(product?.volume_ml);
+        const basePrice = parsePrice(product?.price);
+        const baseWholesale = parsePrice(product?.price_wholesale);
+
+        if (baseMl && baseMl > 0) {
+            rows.push({
+                ml: baseMl,
+                price: basePrice && basePrice > 0 ? basePrice : null,
+                price_wholesale: baseWholesale && baseWholesale > 0 ? baseWholesale : null,
+            });
+        }
+
+        const rawVolumeOptions = (() => {
+            if (Array.isArray(product?.volume_options)) return product.volume_options;
+            if (Array.isArray(product?.volumeOptions)) return product.volumeOptions;
+            if (typeof product?.volume_options === "string") {
+                try {
+                    const parsed = JSON.parse(product.volume_options);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            }
+            if (typeof product?.volumeOptions === "string") {
+                try {
+                    const parsed = JSON.parse(product.volumeOptions);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            }
+            if (product?.volume_options && typeof product.volume_options === "object") {
+                return Object.values(product.volume_options);
+            }
+            if (product?.volumeOptions && typeof product.volumeOptions === "object") {
+                return Object.values(product.volumeOptions);
+            }
+            return [];
+        })();
+
+        for (const opt of rawVolumeOptions) {
+            const ml = parseMl(
+                opt?.ml ??
+                opt?.volume_ml ??
+                opt?.size_ml ??
+                opt?.volumeMl ??
+                opt?.sizeMl ??
+                opt?.label ??
+                opt?.name
+            );
+            const price = parsePrice(
+                opt?.price ??
+                opt?.retail_price ??
+                opt?.retailPrice
+            );
+            const priceWholesale = parsePrice(
+                opt?.price_wholesale ??
+                opt?.wholesale_price ??
+                opt?.wholesalePrice
+            );
+
+            if (!ml || ml <= 0) continue;
+
+            rows.push({
+                ml,
+                price: price && price > 0 ? price : (basePrice && basePrice > 0 ? basePrice : null),
+                price_wholesale:
+                    priceWholesale && priceWholesale > 0
+                        ? priceWholesale
+                        : (baseWholesale && baseWholesale > 0 ? baseWholesale : null),
+            });
+        }
+
+        const byMl = new Map();
+        for (const row of rows) byMl.set(row.ml, row);
+        return Array.from(byMl.values()).sort((a, b) => a.ml - b.ml);
+    }, [product]);
+
+    useEffect(() => {
+        if (sizeOptions.length > 0) {
+            setSelectedSizeMl(String(sizeOptions[0].ml));
+        } else {
+            setSelectedSizeMl("");
+        }
+    }, [product?.id, sizeOptions.length]);
+
+    const selectedSize =
+        sizeOptions.find((opt) => String(opt.ml) === String(selectedSizeMl)) ||
+        sizeOptions[0] ||
+        null;
+
+    const wholesalePrice = Number(selectedSize?.price_wholesale ?? product?.price_wholesale);
+    const retailPrice = Number(selectedSize?.price ?? product?.price);
 
     const finalPrice = isWholesale
         ? (wholesalePrice > 0 ? wholesalePrice : null)
@@ -41,6 +155,7 @@ export default function ProductCardPerfumes({ product, returnTo, isGrid = true }
 
     const stock = Number(product?.stock ?? 0);
     const hasStock = stock > 0;
+    const hasVolume = sizeOptions.length > 0;
 
     const handleAddToCart = () => {
         const hasFlavors =
@@ -57,8 +172,18 @@ export default function ProductCardPerfumes({ product, returnTo, isGrid = true }
             return;
         }
 
+        const productForCart = selectedSize
+            ? {
+                ...product,
+                volume_ml: selectedSize.ml,
+                price: selectedSize.price ?? product.price,
+                price_wholesale: selectedSize.price_wholesale ?? product.price_wholesale,
+                selected_size_ml: selectedSize.ml,
+            }
+            : product;
+
         actions.addToCart(
-            { ...product, selectedFlavor: hasFlavors ? selectedFlavor : null },
+            { ...productForCart, selectedFlavor: hasFlavors ? selectedFlavor : null },
             quantity
         );
     };
@@ -135,6 +260,11 @@ export default function ProductCardPerfumes({ product, returnTo, isGrid = true }
                 <p className="text-xs text-gray-400 mt-1">
                     {product.category_name}
                 </p>
+                {hasVolume && (
+                    <p className="text-xs text-gray-500 mt-1">
+                        Tamaño: {selectedSize?.ml}ml
+                    </p>
+                )}
 
                 {/* precio */}
                 <div className="mt-2">
@@ -157,6 +287,29 @@ export default function ProductCardPerfumes({ product, returnTo, isGrid = true }
 
                 {/* acciones */}
                 <div className="mt-4 pt-3 border-t border-gray-100 mt-auto">
+                    {hasVolume && (
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600 font-medium">Tamaño:</span>
+                            <div className="flex flex-wrap justify-end gap-1 max-w-[65%]">
+                                {sizeOptions.map((opt) => {
+                                    const active = String(opt.ml) === String(selectedSizeMl);
+                                    return (
+                                        <button
+                                            key={opt.ml}
+                                            type="button"
+                                            onClick={() => setSelectedSizeMl(String(opt.ml))}
+                                            className={`px-2 py-1 rounded-full text-xs border ${active
+                                                    ? "border-gray-900 text-gray-900 font-semibold"
+                                                    : "border-gray-300 text-gray-600 hover:border-gray-400"
+                                                }`}
+                                        >
+                                            {opt.ml}ml
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Cantidad */}
                     <div className="flex items-center justify-between mb-2">

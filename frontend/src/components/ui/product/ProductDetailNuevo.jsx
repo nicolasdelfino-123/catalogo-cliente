@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Context } from "../../../js/store/appContext.jsx";
 import sinImagen from "@/assets/sin_imagen.jpg";
@@ -64,6 +64,25 @@ const toAbsUrl = (u = "") => {
     return `${API}/${u}`;
 };
 
+const parseMl = (value) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return Math.floor(value);
+    const text = String(value).trim();
+    if (!text) return null;
+    const match = text.match(/\d+/);
+    if (!match) return null;
+    const n = Number(match[0]);
+    return Number.isFinite(n) ? Math.floor(n) : null;
+};
+
+const parsePrice = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const normalized = String(value).replace(/\./g, "").replace(",", ".").trim();
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : null;
+};
+
 /* =========================
    COMPONENT
 ========================= */
@@ -81,6 +100,7 @@ export default function ProductDetailNuevo() {
 
     const [quantity, setQuantity] = useState(1);
     const [selectedFlavor, setSelectedFlavor] = useState("");
+    const [selectedSizeMl, setSelectedSizeMl] = useState("");
     const [flavorError, setFlavorError] = useState("");
     const [activeTab, setActiveTab] = useState("desc");
     const [descExpanded, setDescExpanded] = useState(false);
@@ -99,6 +119,65 @@ export default function ProductDetailNuevo() {
     const isWholesale = location.pathname.startsWith("/mayorista");
     const prefix = isWholesale ? "/mayorista" : "";
 
+    const sizeOptions = useMemo(() => {
+        const rows = [];
+        const baseMl = parseMl(product?.volume_ml);
+        const basePrice = parsePrice(product?.price);
+        const baseWholesale = parsePrice(product?.price_wholesale);
+
+        if (baseMl && baseMl > 0) {
+            rows.push({
+                ml: baseMl,
+                price: basePrice && basePrice > 0 ? basePrice : null,
+                price_wholesale: baseWholesale && baseWholesale > 0 ? baseWholesale : null,
+            });
+        }
+
+        const rawVolumeOptions = (() => {
+            if (Array.isArray(product?.volume_options)) return product.volume_options;
+            if (typeof product?.volume_options === "string") {
+                try {
+                    const parsed = JSON.parse(product.volume_options);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                    return [];
+                }
+            }
+            return [];
+        })();
+
+        for (const opt of rawVolumeOptions) {
+            const ml = parseMl(opt?.ml ?? opt?.volume_ml ?? opt?.size_ml);
+            const price = parsePrice(opt?.price ?? opt?.retail_price);
+            const priceWholesale = parsePrice(opt?.price_wholesale ?? opt?.wholesale_price);
+            if (!ml || ml <= 0) continue;
+
+            rows.push({
+                ml,
+                price: price && price > 0 ? price : (basePrice && basePrice > 0 ? basePrice : null),
+                price_wholesale:
+                    priceWholesale && priceWholesale > 0
+                        ? priceWholesale
+                        : (baseWholesale && baseWholesale > 0 ? baseWholesale : null),
+            });
+        }
+
+        const byMl = new Map();
+        for (const row of rows) byMl.set(row.ml, row);
+        return Array.from(byMl.values()).sort((a, b) => a.ml - b.ml);
+    }, [product]);
+
+    const selectedSize =
+        sizeOptions.find((opt) => String(opt.ml) === String(selectedSizeMl)) ||
+        sizeOptions[0] ||
+        null;
+
+    const retailPrice = Number(selectedSize?.price ?? product?.price);
+    const wholesalePrice = Number(selectedSize?.price_wholesale ?? product?.price_wholesale);
+    const finalPrice = isWholesale
+        ? (wholesalePrice > 0 ? wholesalePrice : null)
+        : (retailPrice > 0 ? retailPrice : null);
+
     /* =========================
        EFFECTS
     ========================= */
@@ -112,6 +191,11 @@ export default function ProductDetailNuevo() {
     useEffect(() => {
         setActiveImg(gallery[0]);
     }, [product?.id]);
+
+    useEffect(() => {
+        if (sizeOptions.length > 0) setSelectedSizeMl(String(sizeOptions[0].ml));
+        else setSelectedSizeMl("");
+    }, [product?.id, sizeOptions.length]);
 
     /* =========================
        STOCK
@@ -155,8 +239,16 @@ export default function ProductDetailNuevo() {
             return;
         }
 
+        const productForCart = {
+            ...product,
+            volume_ml: selectedSize?.ml ?? product?.volume_ml,
+            selected_size_ml: selectedSize?.ml ?? product?.volume_ml,
+            price: selectedSize?.price ?? product?.price,
+            price_wholesale: selectedSize?.price_wholesale ?? product?.price_wholesale,
+        };
+
         actions?.addToCart(
-            selectedFlavor ? { ...product, selectedFlavor } : product,
+            selectedFlavor ? { ...productForCart, selectedFlavor } : productForCart,
             quantity
         );
     };
@@ -258,11 +350,35 @@ export default function ProductDetailNuevo() {
 
 
                         <div className="text-4xl font-bold text-purple-600 mb-4">
-
-                            ${Number(
-                                isWholesale ? product.price_wholesale : product.price
-                            ).toLocaleString("es-AR")}
+                            {finalPrice !== null
+                                ? `$${Number(finalPrice).toLocaleString("es-AR")}`
+                                : "Consultar"}
                         </div>
+                        {sizeOptions.length > 0 && (
+                            <div className="mb-4">
+                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                    Tamaño: {selectedSize?.ml}ml
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {sizeOptions.map((opt) => {
+                                        const active = String(opt.ml) === String(selectedSizeMl);
+                                        return (
+                                            <button
+                                                key={opt.ml}
+                                                type="button"
+                                                onClick={() => setSelectedSizeMl(String(opt.ml))}
+                                                className={`px-3 py-1 rounded-full text-xs border ${active
+                                                    ? "border-gray-900 text-gray-900 font-semibold"
+                                                    : "border-gray-300 text-gray-600 hover:border-gray-400"
+                                                    }`}
+                                            >
+                                                {opt.ml}ml
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                         <div className="mb-6">
                             <p className="text-sm text-gray-500">Categoría: {product.category_name}</p>
                         </div>

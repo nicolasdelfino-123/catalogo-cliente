@@ -42,6 +42,49 @@ def _normalize_catalog(catalog):
 def _sum_active_stock(catalog):
     return sum(int(f.get('stock', 0)) for f in (catalog or []) if f.get('active'))
 
+def _normalize_volume_options(rows):
+    normalized = []
+    for row in (rows or []):
+        if not isinstance(row, dict):
+            continue
+
+        try:
+            ml = int(float(row.get('ml')))
+        except Exception:
+            continue
+        if ml <= 0:
+            continue
+
+        price = None
+        raw_price = row.get('price')
+        if raw_price not in ("", None):
+            try:
+                val = float(raw_price)
+                price = val if val > 0 else None
+            except Exception:
+                price = None
+
+        price_wholesale = None
+        raw_wh = row.get('price_wholesale')
+        if raw_wh not in ("", None):
+            try:
+                val = float(raw_wh)
+                price_wholesale = val if val > 0 else None
+            except Exception:
+                price_wholesale = None
+
+        normalized.append({
+            'ml': ml,
+            'price': price,
+            'price_wholesale': price_wholesale,
+        })
+
+    # evita duplicados por ml (último valor gana)
+    by_ml = {}
+    for item in normalized:
+        by_ml[item['ml']] = item
+    return [by_ml[k] for k in sorted(by_ml.keys())]
+
 # Middleware para verificar que el usuario sea admin
 def admin_required():
     current_user_id = get_jwt_identity()
@@ -89,6 +132,14 @@ def create_product():
             except Exception:
                 computed_stock = 0
 
+        volume_ml = None
+        if data.get('volume_ml') not in ("", None):
+            try:
+                volume_ml = max(0, int(float(data.get('volume_ml'))))
+            except Exception:
+                volume_ml = None
+        volume_options = _normalize_volume_options(data.get('volume_options'))
+
         product = Product(
             name=data['name'],
             description=data.get('description', ''),
@@ -111,6 +162,8 @@ def create_product():
 
             # puffs opcional (no molesta si queda)
             puffs=(int(data['puffs']) if str(data.get('puffs','')).strip().isdigit() else None),
+            volume_ml=volume_ml,
+            volume_options=volume_options,
 
             created_at=now_cba_naive(),
         )
@@ -161,6 +214,14 @@ def update_product(product_id):
         if 'puffs' in data:
             v = str(data.get('puffs','')).strip()
             product.puffs = int(v) if v.isdigit() else None
+        if 'volume_ml' in data:
+            try:
+                raw = data.get('volume_ml')
+                product.volume_ml = None if raw in ("", None) else max(0, int(float(raw)))
+            except Exception:
+                product.volume_ml = None
+        if 'volume_options' in data:
+            product.volume_options = _normalize_volume_options(data.get('volume_options'))
 
 
         # ===== NUEVO: catálogo y modo =====
@@ -599,4 +660,3 @@ def alias_pedidos():
         return jsonify(serialized), 200
     except Exception as e:
         return jsonify({"error": f"Error al obtener pedidos: {str(e)}"}), 500
-

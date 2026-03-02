@@ -210,7 +210,25 @@ const noSpin = {
     },
 };
 
+const normalizeVolumeOptions = (rows = []) =>
+    (rows || [])
+        .map((row) => {
+            const ml = Number(row?.ml);
+            const price = Number(row?.price);
+            const priceWholesaleRaw = row?.price_wholesale;
+            const priceWholesale =
+                priceWholesaleRaw === "" || priceWholesaleRaw === null || priceWholesaleRaw === undefined
+                    ? null
+                    : Number(priceWholesaleRaw);
 
+            return {
+                ml: Number.isFinite(ml) ? Math.max(0, Math.floor(ml)) : null,
+                price: Number.isFinite(price) && price > 0 ? price : null,
+                price_wholesale:
+                    Number.isFinite(priceWholesale) && priceWholesale > 0 ? priceWholesale : null,
+            };
+        })
+        .filter((row) => row.ml != null && row.ml > 0);
 
 // ----- Componente principal -----
 export default function AdminProducts() {
@@ -540,6 +558,11 @@ export default function AdminProducts() {
                     form.price_wholesale !== "" && form.price_wholesale !== null && form.price_wholesale !== undefined && !isNaN(Number(form.price_wholesale)) && Number(form.price_wholesale) > 0
                         ? Number(form.price_wholesale)
                         : null,
+                volume_ml:
+                    form.volume_ml !== "" && form.volume_ml !== null && form.volume_ml !== undefined && !isNaN(Number(form.volume_ml))
+                        ? Math.max(0, Math.floor(Number(form.volume_ml)))
+                        : null,
+                volume_options: normalizeVolumeOptions(form.volume_options || []),
 
 
                 image_url: normalizedImageUrl,
@@ -667,6 +690,8 @@ export default function AdminProducts() {
 
                         price: "",
                         price_wholesale: "",
+                        volume_ml: "",
+                        volume_options: [],
                         stock: 0,
                     })}
 
@@ -977,6 +1002,8 @@ export default function AdminProducts() {
                                             setForm({
                                                 ...p,
                                                 price_wholesale: p.price_wholesale ?? "", // ✅ NUEVO: trae mayorista al form
+                                                volume_ml: p.volume_ml ?? "",
+                                                volume_options: normalizeVolumeOptions(p.volume_options || []),
                                                 image_url: safeImage,                    // 👈 default en edición
                                                 image_urls: Array.isArray(p.image_urls) ? p.image_urls : (safeImage ? [safeImage] : []),
                                                 flavor_catalog: catalog,
@@ -1045,6 +1072,73 @@ export default function AdminProducts() {
                             onChange={(e) => setForm({ ...form, brand: e.target.value })}
                         />
 
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mililitros (ml)</label>
+                                <input
+                                    className="w-full border rounded px-3 py-2"
+                                    placeholder="Ej: 100, 200, 500"
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    inputMode="numeric"
+                                    {...noSpin}
+                                    value={
+                                        form.volume_ml === "" ||
+                                            form.volume_ml === null ||
+                                            form.volume_ml === undefined
+                                            ? ""
+                                            : form.volume_ml
+                                    }
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            volume_ml: v === "" ? "" : Math.max(0, Math.floor(Number(v))),
+                                        }));
+                                    }}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                className="h-10 px-3 border rounded hover:bg-gray-50"
+                                onClick={() => {
+                                    const ml = Number(form.volume_ml);
+                                    const price = Number(form.price);
+                                    const priceWholesale = Number(form.price_wholesale);
+
+                                    if (!Number.isFinite(ml) || ml <= 0) {
+                                        alert("Ingresá mililitros válidos para agregar");
+                                        return;
+                                    }
+                                    if (!Number.isFinite(price) || price <= 0) {
+                                        alert("Ingresá precio minorista válido para agregar");
+                                        return;
+                                    }
+
+                                    const row = {
+                                        ml: Math.floor(ml),
+                                        price,
+                                        price_wholesale:
+                                            Number.isFinite(priceWholesale) && priceWholesale > 0
+                                                ? priceWholesale
+                                                : null,
+                                    };
+
+                                    setForm((prev) => {
+                                        const current = normalizeVolumeOptions(prev.volume_options || []);
+                                        const withoutSameMl = current.filter((x) => Number(x.ml) !== row.ml);
+                                        return {
+                                            ...prev,
+                                            volume_options: [...withoutSameMl, row].sort((a, b) => a.ml - b.ml),
+                                        };
+                                    });
+                                }}
+                            >
+                                Agregar
+                            </button>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1081,6 +1175,52 @@ export default function AdminProducts() {
                                 />
                             </div>
                         </div>
+
+                        {(form.volume_options || []).length > 0 && (
+                            <div className="space-y-2 border rounded p-3">
+                                {(form.volume_options || []).map((row, idx) => (
+                                    <div key={`${row.ml}-${idx}`} className="flex items-center justify-between text-sm border rounded px-3 py-2">
+                                        <span>
+                                            {row.ml} ml · ${Number(row.price).toLocaleString("es-AR")}
+                                            {Number(row.price_wholesale) > 0
+                                                ? ` · Mayorista $${Number(row.price_wholesale).toLocaleString("es-AR")}`
+                                                : ""}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                title="Editar"
+                                                onClick={() =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        volume_ml: row.ml,
+                                                        price: row.price,
+                                                        price_wholesale: row.price_wholesale ?? "",
+                                                        volume_options: (prev.volume_options || []).filter((_, i) => i !== idx),
+                                                    }))
+                                                }
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="px-2 py-1 border rounded hover:bg-gray-50 text-red-600"
+                                                title="Eliminar"
+                                                onClick={() =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        volume_options: (prev.volume_options || []).filter((_, i) => i !== idx),
+                                                    }))
+                                                }
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/*
 <label className="block text-sm font-medium text-gray-700 mb-1">
