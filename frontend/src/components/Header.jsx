@@ -81,6 +81,45 @@ const getWholesaleSearchPrice = (product) => {
   return null;
 };
 
+const getRetailSearchPrice = (product) => {
+  const direct = parseMoney(product?.price) ?? parseMoney(product?.retail_price) ?? parseMoney(product?.retailPrice);
+  if (direct && direct > 0) return direct;
+
+  const rawVolumeOptions = (() => {
+    if (Array.isArray(product?.volume_options)) return product.volume_options;
+    if (Array.isArray(product?.volumeOptions)) return product.volumeOptions;
+    if (typeof product?.volume_options === "string") {
+      try {
+        const parsed = JSON.parse(product.volume_options);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    if (typeof product?.volumeOptions === "string") {
+      try {
+        const parsed = JSON.parse(product.volumeOptions);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    if (product?.volume_options && typeof product.volume_options === "object") {
+      return Object.values(product.volume_options);
+    }
+    if (product?.volumeOptions && typeof product.volumeOptions === "object") {
+      return Object.values(product.volumeOptions);
+    }
+    return [];
+  })();
+
+  for (const opt of rawVolumeOptions) {
+    const optionRetail = parseMoney(opt?.price) ?? parseMoney(opt?.retail_price) ?? parseMoney(opt?.retailPrice);
+    if (optionRetail && optionRetail > 0) return optionRetail;
+  }
+  return null;
+};
+
 
 
 export default function Header() {
@@ -471,6 +510,7 @@ export default function Header() {
 
                     {searchResults.map((p) => {
                       const wholesalePrice = getWholesaleSearchPrice(p);
+                      const retailPrice = getRetailSearchPrice(p);
                       return (
                         <div
                           key={p.id}
@@ -497,7 +537,9 @@ export default function Header() {
                                     ? `US$${Number(wholesalePrice).toLocaleString("es-AR")}`
                                     : "Consultar"
                                 )
-                                : `$${Number(p.price).toLocaleString("es-AR")}`
+                                : (retailPrice && retailPrice > 0
+                                  ? `$${Number(retailPrice).toLocaleString("es-AR")}`
+                                  : "Consultar")
                               }
                             </div>
 

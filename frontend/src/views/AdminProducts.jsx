@@ -594,13 +594,25 @@ export default function AdminProducts() {
                 return "";                                     // invalida textos sueltos (evita 404 /frutal)
             })();
             const { image_urls, ...cleanForm } = form;
+            const allVolumeOptions = normalizeVolumeOptions(form.volume_options || [], { keepWithoutMl: true });
+            const fallbackRetail = Number(
+                allVolumeOptions.find((row) => Number(row?.price) > 0)?.price
+            );
+            const fallbackWholesale = Number(
+                allVolumeOptions.find((row) => Number(row?.price_wholesale) > 0)?.price_wholesale
+            );
+            const directRetail = Number(form.price);
+            const directWholesale = Number(form.price_wholesale);
             const payload = {
                 ...cleanForm,
-                price: Number(form.price) || 0,        // 👈 fuerza número
+                price:
+                    Number.isFinite(directRetail) && directRetail > 0
+                        ? directRetail
+                        : (Number.isFinite(fallbackRetail) && fallbackRetail > 0 ? fallbackRetail : 0),
                 price_wholesale:
-                    form.price_wholesale !== "" && form.price_wholesale !== null && form.price_wholesale !== undefined && !isNaN(Number(form.price_wholesale)) && Number(form.price_wholesale) > 0
-                        ? Number(form.price_wholesale)
-                        : null,
+                    Number.isFinite(directWholesale) && directWholesale > 0
+                        ? directWholesale
+                        : (Number.isFinite(fallbackWholesale) && fallbackWholesale > 0 ? fallbackWholesale : null),
                 volume_ml:
                     form.volume_ml !== "" && form.volume_ml !== null && form.volume_ml !== undefined && !isNaN(Number(form.volume_ml))
                         ? Math.max(0, Math.floor(Number(form.volume_ml)))
