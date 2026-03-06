@@ -1,14 +1,16 @@
 import React, { useContext, useEffect, useLayoutEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Context } from "../js/store/appContext.jsx";
 import ProductCardPerfumes from "../components/ui/cards/ProductCardPerfumes.jsx";
 import HomeContact from "../components/home/HomeContact.jsx";
 import banner from "../assets/banner_arabe.jpg";
 import Asesoria from "../components/Asesoria.jsx";
 
+
 export default function InicioNuevo() {
     const { store, actions } = useContext(Context);
     const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (actions?.fetchProducts) {
@@ -101,6 +103,29 @@ export default function InicioNuevo() {
                     </div>
                 )}
             </section>
+            <div className="flex justify-center mt-10">
+                <div
+                    onClick={() => navigate("/products")}
+                    className="
+cursor-pointer
+px-8 py-3
+font-serif
+tracking-wide
+text-sm
+uppercase
+rounded-lg
+text-black
+bg-[linear-gradient(110deg,#fbbf24,#f59e0b,#fbbf24)]
+bg-[length:200%_100%]
+bg-left
+hover:bg-right
+transition-all duration-500
+shadow-lg shadow-amber-500/20
+"
+                >
+                    Explorar todas las categorías
+                </div>
+            </div>
             <section id="asesoria">
                 <Asesoria />
             </section>

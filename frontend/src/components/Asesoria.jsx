@@ -34,7 +34,23 @@ export default function Asesoria() {
                         href={`https://wa.me/${whatsappNumber}?text=${message}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block mx-auto px-8 py-4 mt-3 rounded-xl text-lg font-medium text-black bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-600 hover:bg-gradient-to-r hover:from-[#d4af37] hover:via-[#f5d76e] hover:to-[#b8962e] transition-all duration-300 shadow-lg hover:shadow-xl"
+                        className="
+inline-block
+mx-auto
+px-8
+py-4
+mt-3
+rounded-xl
+text-lg
+font-medium
+text-black
+bg-[linear-gradient(110deg,#fbbf24,#f59e0b,#fbbf24)]
+bg-[length:200%_100%]
+bg-left
+hover:bg-right
+transition-all duration-500
+shadow-lg shadow-amber-500/20
+"
                     >
                         Solicitar asesoramiento
                     </a>
