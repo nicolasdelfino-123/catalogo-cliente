@@ -5,6 +5,7 @@ import { Context } from "../js/store/appContext"
 export default function LoginAdmin() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const { actions } = useContext(Context)
@@ -42,19 +43,28 @@ export default function LoginAdmin() {
                 <input
                     type="email"
                     placeholder="Email"
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 pr-10"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                 />
-                <input
-                    type="password"
-                    placeholder="Contraseña"
-                    className="w-full border rounded px-3 py-2"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+                <div className="relative">
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Contraseña"
+                        className="w-full border rounded px-3 py-2 pr-10"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0 bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-gray-500 hover:text-gray-700 cursor-pointer"
+                    >
+                        {showPassword ? "🙈" : "👁"}
+                    </button>
+                </div>
                 <button
                     type="submit"
                     disabled={loading}
