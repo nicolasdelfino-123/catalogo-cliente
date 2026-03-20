@@ -45,7 +45,7 @@ export default function AdminBudgetToolbar({
                         : "bg-slate-800 hover:bg-slate-900"
                         }`}
                 >
-                    {isActive ? `Confirmar presupuesto${selectedCount > 0 ? ` (${selectedCount})` : ""}` : "Generar presupuesto"}
+                    {isActive ? `Confirmar presupuesto${selectedCount > 0 ? ` (${selectedCount})` : ""}` : "Presupuesto"}
                 </button>
             </div>
         </>
