@@ -249,11 +249,11 @@ export default function AdminBudgetModal({
                 </div>
 
                 <div className="p-5 space-y-5">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid gap-2 md:flex md:flex-wrap">
                         <button
                             type="button"
                             onClick={() => setPriceMode(PRICE_MODE_RETAIL)}
-                            className={`px-4 py-2 rounded-lg border ${priceMode === PRICE_MODE_RETAIL
+                            className={`w-full px-4 py-2 rounded-lg border md:w-auto ${priceMode === PRICE_MODE_RETAIL
                                 ? "bg-slate-900 text-white border-slate-900"
                                 : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                                 }`}
@@ -263,7 +263,7 @@ export default function AdminBudgetModal({
                         <button
                             type="button"
                             onClick={() => setPriceMode(PRICE_MODE_WHOLESALE)}
-                            className={`px-4 py-2 rounded-lg border ${priceMode === PRICE_MODE_WHOLESALE
+                            className={`w-full px-4 py-2 rounded-lg border md:w-auto ${priceMode === PRICE_MODE_WHOLESALE
                                 ? "bg-amber-600 text-white border-amber-600"
                                 : "bg-white text-amber-700 border-amber-300 hover:bg-amber-50"
                                 }`}
@@ -273,7 +273,7 @@ export default function AdminBudgetModal({
                         <button
                             type="button"
                             onClick={() => setShowAddProduct((prev) => !prev)}
-                            className="px-4 py-2 rounded-lg border bg-white text-stone-700 border-stone-300 hover:bg-stone-50"
+                            className="w-full px-4 py-2 rounded-lg border bg-white text-stone-700 border-stone-300 hover:bg-stone-50 md:w-auto"
                         >
                             Agregar producto
                         </button>
@@ -409,7 +409,7 @@ export default function AdminBudgetModal({
                     )}
 
                     <div className="border rounded-xl overflow-hidden">
-                        <div className="grid grid-cols-[minmax(0,1fr)_150px] bg-stone-50 border-b text-xs font-semibold uppercase tracking-wide text-stone-500">
+                        <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_150px] bg-stone-50 border-b text-xs font-semibold uppercase tracking-wide text-stone-500">
                             <div className="px-4 py-3">Producto</div>
                             <div className="px-4 py-3 text-right">Precio</div>
                         </div>
@@ -422,9 +422,9 @@ export default function AdminBudgetModal({
                             return (
                                 <div
                                     key={item.id}
-                                    className="grid grid-cols-[minmax(0,1fr)_150px] border-b last:border-b-0 items-center"
+                                    className="grid grid-cols-1 border-b last:border-b-0 md:grid-cols-[minmax(0,1fr)_150px] md:items-center"
                                 >
-                                    <div className="px-4 py-3">
+                                    <div className="px-4 pt-3 pb-2 md:py-3">
                                         <div className="font-medium text-stone-900">
                                             {item.quantity}x {item.name}
                                         </div>
@@ -433,9 +433,9 @@ export default function AdminBudgetModal({
                                         </div>
                                     </div>
 
-                                    <div className="px-4 py-3 text-right">
+                                    <div className="px-4 pb-3 pt-0 md:py-3 text-left md:text-right">
                                         {isEditing ? (
-                                            <div className="flex items-center justify-end gap-2">
+                                            <div className="flex items-center gap-2 md:justify-end">
                                                 <input
                                                     type="text"
                                                     inputMode="decimal"
@@ -474,7 +474,7 @@ export default function AdminBudgetModal({
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center justify-end gap-2">
+                                            <div className="flex items-center gap-2 md:justify-end">
                                                 <span className="tabular-nums md:inline-flex md:items-center md:gap-1 md:whitespace-nowrap">
                                                     {currency} {formatPrice(priceValue)}
                                                 </span>
