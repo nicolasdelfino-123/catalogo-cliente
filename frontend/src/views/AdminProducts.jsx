@@ -1418,15 +1418,15 @@ export default function AdminProducts() {
                                             {p.brand && <div className="text-gray-500 text-xs">{p.brand}</div>}
                                         </div>
                                     </td>
-                                    <td className="p-2 max-w-xs">
-                                        <div className="truncate" title={stripHtml(p.description)}>
-                                            {stripHtml(p.description) || "Sin descripción"}
-                                        </div>
+                                    <td className="p-2 max-w-xs text-center">
+                                        {stripHtml(p.description)
+                                            ? <span className="font-semibold text-green-600">✓</span>
+                                            : <span className="text-gray-400">x</span>}
                                     </td>
-                                    <td className="p-2 max-w-xs">
-                                        <div className="truncate" title={stripHtml(p.short_description)}>
-                                            {stripHtml(p.short_description) || "Sin descripción breve"}
-                                        </div>
+                                    <td className="p-2 max-w-xs text-center">
+                                        {stripHtml(p.short_description)
+                                            ? <span className="font-semibold text-green-600">✓</span>
+                                            : <span className="text-gray-400">x</span>}
                                     </td>
                                     <td className="p-2 text-center">
                                         <select
