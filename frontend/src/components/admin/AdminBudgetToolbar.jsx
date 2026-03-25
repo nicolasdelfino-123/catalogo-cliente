@@ -25,7 +25,7 @@ export default function AdminBudgetToolbar({
                 </div>
             )}
 
-            <div className="flex items-end gap-2 ml-auto">
+            <div className="flex w-full items-end gap-2 sm:ml-auto sm:w-auto">
                 {isActive && (
                     <button
                         type="button"
@@ -40,7 +40,7 @@ export default function AdminBudgetToolbar({
                     type="button"
                     onClick={isActive ? onConfirm : onStart}
                     disabled={isActive && selectedCount === 0}
-                    className={`px-4 py-2 rounded text-white transition-colors whitespace-nowrap ${isActive
+                    className={`inline-block w-full px-4 py-2 rounded text-white text-center transition-colors whitespace-nowrap sm:w-auto ${isActive
                         ? "bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300"
                         : "bg-slate-800 hover:bg-slate-900"
                         }`}

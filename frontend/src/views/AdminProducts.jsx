@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import sinImagen from '@/assets/sin_imagen.jpg'
 import { Link, useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/price.js";
@@ -28,19 +28,32 @@ const parseFlexibleDecimal = (value) => {
 
     const lastComma = raw.lastIndexOf(",");
     const lastDot = raw.lastIndexOf(".");
-    const separatorIndex = Math.max(lastComma, lastDot);
+    const hasComma = lastComma >= 0;
+    const hasDot = lastDot >= 0;
 
-    let normalized = raw;
-    if (separatorIndex >= 0) {
-        const integerPart = raw.slice(0, separatorIndex).replace(/[.,]/g, "") || "0";
+    let normalized = raw.replace(/[.,]/g, "");
+
+    if (hasComma || hasDot) {
+        const separatorIndex = Math.max(lastComma, lastDot);
         const decimalPart = raw.slice(separatorIndex + 1).replace(/[.,]/g, "");
-        normalized = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
-    } else {
-        normalized = raw.replace(/[.,]/g, "");
+        const integerPart = raw.slice(0, separatorIndex).replace(/[.,]/g, "") || "0";
+        const hasMixedSeparators = hasComma && hasDot;
+        const treatAsDecimal =
+            decimalPart.length > 0 &&
+            (hasMixedSeparators || decimalPart.length <= 2);
+
+        normalized = treatAsDecimal ? `${integerPart}.${decimalPart}` : integerPart + decimalPart;
     }
 
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatEditableMoney = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "";
+    if (Number.isInteger(parsed)) return String(parsed);
+    return String(parsed).replace(".", ",");
 };
 
 const stripHtml = (value = "") =>
@@ -404,6 +417,7 @@ export default function AdminProducts() {
     // antes: const imgInputRef = useRef(null);
     const mainImgInputRef = useRef(null);
     const galImgInputRef = useRef(null);
+    const resultsRef = useRef(null);
     const [editingPriceId, setEditingPriceId] = useState(null);
     const [editingPrice, setEditingPrice] = useState("");
 
@@ -417,6 +431,7 @@ export default function AdminProducts() {
     const [budgetFilter, setBudgetFilter] = useState("all");
     const [budgetSelections, setBudgetSelections] = useState({});
     const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+    const [expandedMobileProductId, setExpandedMobileProductId] = useState(null);
 
 
 
@@ -438,6 +453,12 @@ export default function AdminProducts() {
 
     const token = localStorage.getItem("token") || localStorage.getItem("admin_token")
     if (!token) return <div className="p-6">No autorizado</div>
+
+    const scrollToResults = () => {
+        window.requestAnimationFrame(() => {
+            resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    };
 
     const fetchAll = async () => {
         try {
@@ -467,7 +488,7 @@ export default function AdminProducts() {
         setEditingWholesale(
             currentWholesale == null || currentWholesale === ""
                 ? ""
-                : formatPrice(currentWholesale)
+                : formatEditableMoney(currentWholesale)
         );
 
     };
@@ -1156,10 +1177,22 @@ export default function AdminProducts() {
                         Buscar
                     </label>
                     <input
+                        type="search"
+                        enterKeyHint="search"
+                        autoComplete="off"
                         placeholder="Buscar por nombre o marca"
                         className="w-full border rounded px-3 py-2"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
+                        onSearch={() => {
+                            scrollToResults();
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key !== "Enter") return;
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                            scrollToResults();
+                        }}
                     />
                 </div>
 
@@ -1363,7 +1396,7 @@ export default function AdminProducts() {
             )}
 
             {/* Tabla */}
-            <div className="overflow-x-auto">
+            <div ref={resultsRef} className="overflow-x-auto">
                 <table className="w-full text-sm border">
                     <thead className="bg-gray-50">
                         <tr>
@@ -1374,17 +1407,23 @@ export default function AdminProducts() {
                                 </>
                             )}
                             <th className="p-2 text-left">Producto</th>
-                            <th className="p-2 text-left">Descripción corta</th>
-                            <th className="p-2 text-left">Descripción larga</th>
+                            <th className="hidden p-2 text-left md:table-cell">Descripción corta</th>
+                            <th className="hidden p-2 text-left md:table-cell">Descripción larga</th>
                             <th className="p-2 text-center">ML</th>
-                            <th className="p-2">Precio minorista</th>
+                            <th className="p-2">
+                                <span className="md:hidden">Min</span>
+                                <span className="hidden md:inline">Precio minorista</span>
+                            </th>
 
-                            <th className="p-2">Precio<br /> Mayorista</th>
+                            <th className="p-2">
+                                <span className="md:hidden">May</span>
+                                <span className="hidden md:inline">Precio<br /> Mayorista</span>
+                            </th>
 
-                            <th className="p-2">Stock</th>
-                            <th className="p-2">Categoría</th>
+                            <th className="hidden p-2 md:table-cell">Stock</th>
+                            <th className="hidden p-2 md:table-cell">Categoría</th>
                             {/*  <th className="p-2">Sabores</th> */}
-                            <th className="p-2">Estado</th>
+                            <th className="hidden p-2 md:table-cell">Estado</th>
                             <th className="p-2"></th>
                         </tr>
                     </thead>
@@ -1401,270 +1440,330 @@ export default function AdminProducts() {
                                 Number.isFinite(Number(selectedOption?.stock))
                                     ? Number(selectedOption.stock)
                                     : (Number.isFinite(Number(p?.stock)) ? Number(p.stock) : 0);
+                            const isMobileExpanded = expandedMobileProductId === p.id;
+                            const tableColSpan = budgetMode ? 13 : 11;
 
                             return (
-                                <tr key={p.id} className="border-t">
-                                    {budgetMode && (
-                                        <AdminBudgetSelectionCell
-                                            checked={getBudgetSelection(p.id).checked}
-                                            quantity={getBudgetSelection(p.id).quantity}
-                                            onCheckedChange={(checked) => updateBudgetSelection(p.id, { checked })}
-                                            onQuantityChange={(quantity) => updateBudgetSelection(p.id, { quantity })}
-                                        />
-                                    )}
-                                    <td className="p-2">
-                                        <div>
-                                            <div className="font-medium">{p.name}</div>
-                                            {p.brand && <div className="text-gray-500 text-xs">{p.brand}</div>}
-                                        </div>
-                                    </td>
-                                    <td className="p-2 max-w-xs text-center">
-                                        {stripHtml(p.description)
-                                            ? <span className="font-semibold text-green-600">✓</span>
-                                            : <span className="text-gray-400">x</span>}
-                                    </td>
-                                    <td className="p-2 max-w-xs text-center">
-                                        {stripHtml(p.short_description)
-                                            ? <span className="font-semibold text-green-600">✓</span>
-                                            : <span className="text-gray-400">x</span>}
-                                    </td>
-                                    <td className="p-2 text-center">
-                                        <select
-                                            value={getSelectedMlKey(p)}
-                                            onChange={(e) =>
-                                                setSelectedMlByProduct((prev) => ({ ...prev, [p.id]: e.target.value }))
-                                            }
-                                            className="border rounded px-2 py-1 text-xs sm:text-sm min-w-[96px]"
-                                        >
-                                            {mlOptions.map((opt) => {
-                                                const key =
-                                                    Number.isFinite(Number(opt?.ml)) && Number(opt.ml) > 0
-                                                        ? String(Number(opt.ml))
-                                                        : "sin_ml";
-                                                return (
-                                                    <option key={`${p.id}-${key}`} value={key}>
-                                                        {key === "sin_ml" ? "Sin ML" : `${key} ML`}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                    </td>
-                                    <td className="p-2">
-                                        {editingPriceId === p.id ? (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <input
-                                                    className="w-24 border rounded px-2 py-1 text-right tabular-nums"
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    autoFocus
-                                                    value={Number(editingPrice || 0).toLocaleString("es-AR")}
-                                                    onChange={(e) => {
-                                                        const raw = e.target.value.replace(/\./g, "").replace(/[^\d]/g, "");
-                                                        setEditingPrice(raw);
-                                                    }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") confirmEditPrice();
-                                                        if (e.key === "Escape") cancelEditPrice();
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-green-50"
-                                                    title="Guardar"
-                                                    onClick={confirmEditPrice}
-                                                >
-                                                    ✅
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-gray-50"
-                                                    title="Cancelar"
-                                                    onClick={cancelEditPrice}
-                                                >
-                                                    ❌
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span className="tabular-nums">$ {Number(retailShown).toLocaleString("es-AR")}</span>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-gray-50"
-                                                    title="Editar precio"
-                                                    onClick={() => startEditPrice(p, retailShown)}
-                                                >
-                                                    ✏️
-                                                </button>
-                                            </div>
+                                <Fragment key={p.id}>
+                                    <tr className="border-t">
+                                        {budgetMode && (
+                                            <AdminBudgetSelectionCell
+                                                checked={getBudgetSelection(p.id).checked}
+                                                quantity={getBudgetSelection(p.id).quantity}
+                                                onCheckedChange={(checked) => updateBudgetSelection(p.id, { checked })}
+                                                onQuantityChange={(quantity) => updateBudgetSelection(p.id, { quantity })}
+                                            />
                                         )}
-                                    </td>
-                                    <td className="p-2">
-                                        {editingWholesaleId === p.id ? (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <input
-                                                    className="w-24 border rounded px-2 py-1 text-right tabular-nums"
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    autoFocus
-                                                    value={editingWholesale ?? ""}
-                                                    onChange={(e) => setEditingWholesale(e.target.value.replace(/[^\d,.\s]/g, ""))}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") confirmEditWholesale();
-                                                        if (e.key === "Escape") cancelEditWholesale();
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-green-50"
-                                                    onClick={confirmEditWholesale}
-                                                >
-                                                    ✅
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-gray-50"
-                                                    onClick={cancelEditWholesale}
-                                                >
-                                                    ❌
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span className="tabular-nums">
-                                                    {wholesaleShown ? `US$ ${formatPrice(wholesaleShown)}` : "—"}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-gray-50"
-                                                    onClick={() => startEditWholesale(p, wholesaleShown)}
-                                                >
-                                                    ✏️
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-
-
-
-                                    <td className="p-2 text-center">
-                                        {editingStockId === p.id ? (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <input
-                                                    className="w-20 border rounded px-2 py-1 text-right"
-                                                    type="number"
-                                                    min={0}
-                                                    step={1}
-                                                    inputMode="numeric"
-                                                    autoFocus
-                                                    value={editingStock}
-                                                    onChange={(e) => setEditingStock(e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") confirmEditStock();
-                                                        if (e.key === "Escape") cancelEditStock();
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-green-50"
-                                                    onClick={confirmEditStock}
-                                                >
-                                                    ✅
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-red-50"
-                                                    onClick={cancelEditStock}
-                                                >
-                                                    ✖️
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span>{stockShown}</span>
-                                                <button
-                                                    type="button"
-                                                    className="px-2 py-1 border rounded hover:bg-gray-50"
-                                                    onClick={() => startEditStock(p, stockShown)}
-                                                >
-                                                    ✏️
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
-
-                                    <td className="p-2 text-center">{ID_TO_CATEGORY_NAME[p.category_id]}</td>
-                                    {/*  <td className="p-2 text-center">
-                                    {p.flavor_enabled ? (
-                                        <span
-                                            className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded"
-                                            title="activos / con stock"
-                                        >
-                                            {p.flavors?.length || 0} sabores ·{" "}
-                                            {(p.flavor_catalog || []).filter((x) => x?.active && Number(x?.stock) > 0).length} con stock
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-gray-500">Sin sabores</span>
-                                    )}
-                                </td> */}
-                                    <td className="p-2 text-center">
-                                        <span
-                                            className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                                }`}
-                                        >
-                                            {p.is_active ? "Activo" : "Inactivo"}
-                                        </span>
-                                    </td>
-                                    <td className="p-2 text-right">
-                                        <button
-                                            onClick={() => {
-                                                let catalog = Array.isArray(p.flavor_catalog) ? p.flavor_catalog : [];
-                                                if ((!catalog || catalog.length === 0) && Array.isArray(p.flavors) && p.flavors.length > 0) {
-                                                    catalog = p.flavors.map((n) => ({ name: n, active: true, stock: 0 }));
+                                        <td className="p-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedMobileProductId((prev) => (prev === p.id ? null : p.id))}
+                                                className="flex w-full items-start justify-between gap-2 text-left md:block"
+                                            >
+                                                <div className="min-w-0">
+                                                    <div className="font-medium">{p.name}</div>
+                                                    {p.brand && <div className="text-gray-500 text-xs">{p.brand}</div>}
+                                                </div>
+                                                <span className="text-xs text-gray-400 md:hidden">{isMobileExpanded ? "Ocultar" : "Ver"}</span>
+                                            </button>
+                                        </td>
+                                        <td className="hidden p-2 max-w-xs text-center md:table-cell">
+                                            {stripHtml(p.description)
+                                                ? <span className="font-semibold text-green-600">✓</span>
+                                                : <span className="text-gray-400">x</span>}
+                                        </td>
+                                        <td className="hidden p-2 max-w-xs text-center md:table-cell">
+                                            {stripHtml(p.short_description)
+                                                ? <span className="font-semibold text-green-600">✓</span>
+                                                : <span className="text-gray-400">x</span>}
+                                        </td>
+                                        <td className="p-2 text-center">
+                                            <select
+                                                value={getSelectedMlKey(p)}
+                                                onChange={(e) =>
+                                                    setSelectedMlByProduct((prev) => ({ ...prev, [p.id]: e.target.value }))
                                                 }
-                                                if (!Array.isArray(catalog)) catalog = [];
+                                                className="border rounded px-2 py-1 text-xs sm:text-sm min-w-[84px] md:min-w-[96px]"
+                                            >
+                                                {mlOptions.map((opt) => {
+                                                    const key =
+                                                        Number.isFinite(Number(opt?.ml)) && Number(opt.ml) > 0
+                                                            ? String(Number(opt.ml))
+                                                            : "sin_ml";
+                                                    return (
+                                                        <option key={`${p.id}-${key}`} value={key}>
+                                                            {key === "sin_ml" ? "Sin ML" : `${key} ML`}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                        </td>
+                                        <td className="p-2">
+                                            {editingPriceId === p.id ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <input
+                                                        className="w-20 md:w-24 border rounded px-2 py-1 text-right tabular-nums"
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        autoFocus
+                                                        value={Number(editingPrice || 0).toLocaleString("es-AR")}
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value.replace(/\./g, "").replace(/[^\d]/g, "");
+                                                            setEditingPrice(raw);
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") confirmEditPrice();
+                                                            if (e.key === "Escape") cancelEditPrice();
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-green-50"
+                                                        title="Guardar"
+                                                        onClick={confirmEditPrice}
+                                                    >
+                                                        ✅
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                        title="Cancelar"
+                                                        onClick={cancelEditPrice}
+                                                    >
+                                                        ❌
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="whitespace-nowrap tabular-nums">$ {Number(retailShown).toLocaleString("es-AR")}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                        title="Editar precio"
+                                                        onClick={() => startEditPrice(p, retailShown)}
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-2">
+                                            {editingWholesaleId === p.id ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <input
+                                                        className="w-20 md:w-24 border rounded px-2 py-1 text-right tabular-nums"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        autoFocus
+                                                        value={editingWholesale ?? ""}
+                                                        onChange={(e) => setEditingWholesale(e.target.value.replace(/[^\d,.\s]/g, ""))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") confirmEditWholesale();
+                                                            if (e.key === "Escape") cancelEditWholesale();
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-green-50"
+                                                        onClick={confirmEditWholesale}
+                                                    >
+                                                        ✅
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                        onClick={cancelEditWholesale}
+                                                    >
+                                                        ❌
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="whitespace-nowrap tabular-nums">
+                                                        {wholesaleShown ? `US$ ${formatPrice(wholesaleShown)}` : "—"}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                        onClick={() => startEditWholesale(p, wholesaleShown)}
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="hidden p-2 text-center md:table-cell">
+                                            {editingStockId === p.id ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <input
+                                                        className="w-20 border rounded px-2 py-1 text-right"
+                                                        type="number"
+                                                        min={0}
+                                                        step={1}
+                                                        inputMode="numeric"
+                                                        autoFocus
+                                                        value={editingStock}
+                                                        onChange={(e) => setEditingStock(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") confirmEditStock();
+                                                            if (e.key === "Escape") cancelEditStock();
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-green-50"
+                                                        onClick={confirmEditStock}
+                                                    >
+                                                        ✅
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-red-50"
+                                                        onClick={cancelEditStock}
+                                                    >
+                                                        ✖️
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span>{stockShown}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                        onClick={() => startEditStock(p, stockShown)}
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="hidden p-2 text-center md:table-cell">{ID_TO_CATEGORY_NAME[p.category_id]}</td>
+                                        <td className="hidden p-2 text-center md:table-cell">
+                                            <span
+                                                className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                                    }`}
+                                            >
+                                                {p.is_active ? "Activo" : "Inactivo"}
+                                            </span>
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            <button
+                                                onClick={() => {
+                                                    let catalog = Array.isArray(p.flavor_catalog) ? p.flavor_catalog : [];
+                                                    if ((!catalog || catalog.length === 0) && Array.isArray(p.flavors) && p.flavors.length > 0) {
+                                                        catalog = p.flavors.map((n) => ({ name: n, active: true, stock: 0 }));
+                                                    }
+                                                    if (!Array.isArray(catalog)) catalog = [];
 
-                                                const flavorStockMode = Boolean(p?.flavor_stock_mode ?? false);
-                                                const sum = sumActiveFlavorStock(catalog);
+                                                    const flavorStockMode = Boolean(p?.flavor_stock_mode ?? false);
+                                                    const sum = sumActiveFlavorStock(catalog);
+                                                    const safeImage = (p.image_url && String(p.image_url).trim())
+                                                        ? p.image_url
+                                                        : "";
+                                                    let safeGallery = Array.isArray(p.image_urls) ? p.image_urls : [];
+                                                    safeGallery = safeGallery.filter((u) => !isDefaultImage(u));
+                                                    if (safeImage && !isDefaultImage(safeImage)) {
+                                                        safeGallery = uniqPush(safeGallery, safeImage);
+                                                    }
 
-                                                // si no tiene imagen cargada, queda vacío y el preview usa fallback
-                                                const safeImage = (p.image_url && String(p.image_url).trim())
-                                                    ? p.image_url
-                                                    : "";
-                                                let safeGallery = Array.isArray(p.image_urls) ? p.image_urls : [];
-                                                safeGallery = safeGallery.filter((u) => !isDefaultImage(u));
-                                                if (safeImage && !isDefaultImage(safeImage)) {
-                                                    safeGallery = uniqPush(safeGallery, safeImage);
-                                                }
-
-                                                setForm({
-                                                    ...p,
-                                                    category_id: Number(p.category_id) === 6 ? 1 : p.category_id,
-                                                    price: "",
-                                                    price_wholesale: "",
-                                                    volume_ml: "",
-                                                    volume_stock: "",
-                                                    volume_options: getMlOptionsForTable(p),
-
-                                                    image_url: safeImage,
-                                                    image_urls: safeGallery,
-                                                    flavor_catalog: catalog,
-                                                    flavor_enabled: p.flavor_enabled ?? (catalog.length > 0),
-                                                    flavor_stock_mode: flavorStockMode,
-                                                    stock: flavorStockMode ? sum : (Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0),
-                                                });
-
-
-                                            }}
-                                            className="px-3 py-1 border rounded hover:bg-gray-50"
-                                        >
-                                            Editar
-                                        </button>
-
-
-
-
-                                    </td>
-                                </tr>
+                                                    setForm({
+                                                        ...p,
+                                                        category_id: Number(p.category_id) === 6 ? 1 : p.category_id,
+                                                        price: "",
+                                                        price_wholesale: "",
+                                                        volume_ml: "",
+                                                        volume_stock: "",
+                                                        volume_options: getMlOptionsForTable(p),
+                                                        image_url: safeImage,
+                                                        image_urls: safeGallery,
+                                                        flavor_catalog: catalog,
+                                                        flavor_enabled: p.flavor_enabled ?? (catalog.length > 0),
+                                                        flavor_stock_mode: flavorStockMode,
+                                                        stock: flavorStockMode ? sum : (Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0),
+                                                    });
+                                                }}
+                                                className="px-3 py-1 border rounded hover:bg-gray-50"
+                                            >
+                                                Editar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {isMobileExpanded && (
+                                        <tr className="border-t bg-gray-50 md:hidden">
+                                            <td colSpan={tableColSpan} className="p-3">
+                                                <div className="grid grid-cols-[max-content,max-content] justify-start gap-x-4 gap-y-3 text-sm">
+                                                    <div>
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500">Stock</div>
+                                                        <div className="mt-1">
+                                                            {editingStockId === p.id ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        className="w-20 border rounded px-2 py-1 text-right"
+                                                                        type="number"
+                                                                        min={0}
+                                                                        step={1}
+                                                                        inputMode="numeric"
+                                                                        autoFocus
+                                                                        value={editingStock}
+                                                                        onChange={(e) => setEditingStock(e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === "Enter") confirmEditStock();
+                                                                            if (e.key === "Escape") cancelEditStock();
+                                                                        }}
+                                                                    />
+                                                                    <button type="button" className="px-2 py-1 border rounded hover:bg-green-50" onClick={confirmEditStock}>✅</button>
+                                                                    <button type="button" className="px-2 py-1 border rounded hover:bg-red-50" onClick={cancelEditStock}>✖️</button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span>{stockShown}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="px-2 py-1 border rounded hover:bg-gray-50"
+                                                                        onClick={() => startEditStock(p, stockShown)}
+                                                                    >
+                                                                        ✏️
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500">Categoria</div>
+                                                        <div className="mt-1">{ID_TO_CATEGORY_NAME[p.category_id]}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500">Desc. corta</div>
+                                                        <div className="mt-1">
+                                                            {stripHtml(p.description)
+                                                                ? <span className="font-semibold text-green-600">✓</span>
+                                                                : <span className="text-gray-400">x</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500">Desc. larga</div>
+                                                        <div className="mt-1">
+                                                            {stripHtml(p.short_description)
+                                                                ? <span className="font-semibold text-green-600">✓</span>
+                                                                : <span className="text-gray-400">x</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500">Estado</div>
+                                                        <div className="mt-1">
+                                                            <span
+                                                                className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                                                    }`}
+                                                            >
+                                                                {p.is_active ? "Activo" : "Inactivo"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
                             )
                         })}
                     </tbody>
@@ -2060,9 +2159,9 @@ export default function AdminProducts() {
 
                         <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del producto</label>
 
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2 md:flex">
                             <input
-                                className="w-full border rounded px-3 py-2"
+                                className="w-full min-w-0 border rounded px-3 py-2"
                                 placeholder="URL de imagen (opcional si subís una)"
                                 value={form.image_url || ""}
                                 onChange={(e) => setForm({ ...form, image_url: e.target.value })}
@@ -2083,7 +2182,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={() => mainImgInputRef.current?.click()}
-                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
+                                className="w-full px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
                                 title="Subir como principal"
                             >
                                 Subir principal
@@ -2104,7 +2203,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={() => galImgInputRef.current?.click()}
-                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
+                                className="w-full px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
                                 title="Agregar a galería"
                             >
                                 Agregar foto
@@ -2112,7 +2211,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={deleteSelectedImage}
-                                className="px-3 py-2 border rounded hover:bg-red-50 shrink-0 text-red-700"
+                                className="w-full px-3 py-2 border rounded hover:bg-red-50 shrink-0 text-red-700"
                                 title="Eliminar la foto seleccionada (principal)"
                             >
                                 Eliminar foto seleccionada
