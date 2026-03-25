@@ -2,11 +2,12 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { withWholesale } from '../utils/navigation.js'
 import { PERFUME_CATEGORY_DEFINITIONS as FOOTER_CATEGORIES } from '../utils/perfumeCategories.js'
+import { storeConfig } from "../config/storeConfig";
 
-import logofooter from "../assets/logofooter.png";
+const logofooter = `/${storeConfig.media.footerLogo}`;
 
-const phone = "5493533459552";
-const message = encodeURIComponent(`Hola, tengo una consulta sobre el producto...`);
+const phone = storeConfig.contact.whatsapp;
+const message = encodeURIComponent(storeConfig.contact.whatsappMessage);
 const link = `https://wa.me/${phone}?text=${message}`;
 
 const Footer = () => {
@@ -85,25 +86,25 @@ const Footer = () => {
                                         rel="noopener noreferrer"
                                         className="relative hover:text-amber-300 transition-all duration-300 after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-amber-400 after:transition-all after:duration-300 hover:after:w-full"
                                     >
-                                        WhatsApp: +54 9 3533 45-9552
+                                        WhatsApp: {storeConfig.contact.whatsappDisplay}
                                     </a>
                                 </li>
                                 <li>
                                     <a
-                                        href="mailto:xxx@gmail.com"
+                                        href={`mailto:${storeConfig.contact.email}`}
                                         className="relative hover:text-amber-300 transition-all duration-300 after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-amber-400 after:transition-all after:duration-300 hover:after:w-full"
                                     >
-                                        Email: shathaperfumeslv@gmail.com
+                                        Email: {storeConfig.contact.emailDisplay}
                                     </a>
                                 </li>
                                 <li>
                                     <a
-                                        href="https://www.instagram.com/shatha_oriental/"
+                                        href={storeConfig.contact.instagram}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="relative hover:text-amber-300 transition-all duration-300 after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-amber-400 after:transition-all after:duration-300 hover:after:w-full"
                                     >
-                                        Instagram: @shatha_oriental
+                                        Instagram: {storeConfig.contact.instagramDisplay}
                                     </a>
                                 </li>
                             </ul>

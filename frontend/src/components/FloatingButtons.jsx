@@ -1,4 +1,5 @@
 import React from "react";
+import { storeConfig } from "../config/storeConfig";
 
 /**
  * Botonera flotante lateral (Instagram / WhatsApp)
@@ -8,9 +9,11 @@ import React from "react";
  */
 export default function FloatingButtons() {
     // EDITA estas URLs a las reales de tu cliente
-    const IG_URL = "https://www.instagram.com/shatha_oriental/";
-    const mensaje = "Hola, quiero consultar por un perfume del catálogo";
-    const WA_URL = `https://wa.me/5493533459552?text=${mensaje}`;
+
+
+    const IG_URL = storeConfig.contact.instagram;
+    const mensaje = encodeURIComponent(storeConfig.contact.whatsappMessage);
+    const WA_URL = `https://wa.me/${storeConfig.contact.whatsapp}?text=${mensaje}`;
 
 
 
