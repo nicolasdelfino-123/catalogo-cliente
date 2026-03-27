@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import sinImagen from '@/assets/sin_imagen.jpg'
 import { Link, useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/price.js";
@@ -432,6 +433,8 @@ export default function AdminProducts() {
     const [budgetSelections, setBudgetSelections] = useState({});
     const [budgetModalOpen, setBudgetModalOpen] = useState(false);
     const [expandedMobileProductId, setExpandedMobileProductId] = useState(null);
+    const [changingStatusId, setChangingStatusId] = useState(null);
+    const [changingStatusMsg, setChangingStatusMsg] = useState("");
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingImageLabel, setUploadingImageLabel] = useState("");
     const [savingProduct, setSavingProduct] = useState(false);
@@ -847,7 +850,6 @@ export default function AdminProducts() {
 
     const doSaveProduct = async () => {
         setSavingProduct(true);
-
         try {
             const method = form.id ? "PUT" : "POST"
             const url = form.id ? `${API}/admin/products/${form.id}` : `${API}/admin/products`
@@ -1652,12 +1654,121 @@ export default function AdminProducts() {
                                         </td>
                                         <td className="hidden p-2 text-center md:table-cell">{ID_TO_CATEGORY_NAME[p.category_id]}</td>
                                         <td className="hidden p-2 text-center md:table-cell">
-                                            <span
-                                                className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                                    }`}
+                                            {/* Toggle visual Estado con aviso solo en filtro activos/inactivos */}
+                                            <button
+                                                type="button"
+                                                aria-label={p.is_active ? "Desactivar producto" : "Activar producto"}
+                                                disabled={changingStatusId === p.id}
+                                                onClick={async () => {
+                                                    const nextActive = !p.is_active;
+                                                    const isStatusFilter = selectedStatus === 'activos' || selectedStatus === 'inactivos';
+                                                    if (isStatusFilter) {
+                                                        setChangingStatusId(p.id);
+                                                        setChangingStatusMsg(`Cambiando producto a ${nextActive ? 'activo' : 'inactivo'}...`);
+                                                    }
+                                                    try {
+                                                        const res = await fetch(`${API}/admin/products/${p.id}`, {
+                                                            method: "PUT",
+                                                            headers: {
+                                                                "Content-Type": "application/json",
+                                                                Authorization: `Bearer ${token}`,
+                                                            },
+                                                            body: JSON.stringify({ is_active: nextActive }),
+                                                        });
+                                                        if (!res.ok) {
+                                                            const data = await res.json().catch(() => ({}));
+                                                            alert(`No se pudo actualizar el estado: ${data?.error || res.statusText}`);
+                                                            setChangingStatusId(null);
+                                                            setChangingStatusMsg("");
+                                                            return;
+                                                        }
+                                                        if (isStatusFilter) {
+                                                            setChangingStatusMsg(`Cambiando producto a ${nextActive ? 'activo' : 'inactivo'}...`);
+                                                            setTimeout(() => {
+                                                                setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, is_active: nextActive } : prod));
+                                                                setChangingStatusId(null);
+                                                                setChangingStatusMsg("");
+                                                            }, 2000);
+                                                        } else {
+                                                            setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, is_active: nextActive } : prod));
+                                                        }
+                                                    } catch {
+                                                        alert("Error actualizando estado");
+                                                        setChangingStatusId(null);
+                                                        setChangingStatusMsg("");
+                                                    }
+                                                }}
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    border: 'none',
+                                                    background: 'none',
+                                                    cursor: changingStatusId === p.id ? 'not-allowed' : 'pointer',
+                                                    padding: 0,
+                                                    margin: 0,
+                                                }}
                                             >
-                                                {p.is_active ? "Activo" : "Inactivo"}
-                                            </span>
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    width: 38,
+                                                    height: 22,
+                                                    borderRadius: 12,
+                                                    background: p.is_active ? '#bbf7d0' : '#fecaca',
+                                                    position: 'relative',
+                                                    transition: 'background 0.2s',
+                                                    marginRight: 8,
+                                                }}>
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        left: p.is_active ? 18 : 2,
+                                                        top: 2,
+                                                        width: 18,
+                                                        height: 18,
+                                                        borderRadius: '50%',
+                                                        background: p.is_active ? '#059669' : '#b91c1c',
+                                                        transition: 'left 0.2s, background 0.2s',
+                                                    }} />
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                    color: p.is_active ? '#059669' : '#b91c1c',
+                                                    minWidth: 54,
+                                                    textAlign: 'left',
+                                                }}>
+                                                    {p.is_active ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </button>
+                                            {/* Aviso de cambio de estado (portal, siempre visible, sobre header) */}
+                                            {changingStatusId && changingStatusMsg && createPortal(
+                                                <div style={{
+                                                    position: 'fixed',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100vw',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    zIndex: 99999,
+                                                    pointerEvents: 'none',
+                                                }}>
+                                                    <div style={{
+                                                        marginTop: 12,
+                                                        background: '#fbbf24',
+                                                        color: '#78350f',
+                                                        padding: '10px 24px',
+                                                        borderRadius: 8,
+                                                        fontWeight: 600,
+                                                        fontSize: 16,
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                                        pointerEvents: 'auto',
+                                                        maxWidth: '90vw',
+                                                        textAlign: 'center',
+                                                    }}>
+                                                        {changingStatusMsg}
+                                                    </div>
+                                                </div>,
+                                                document.body
+                                            )}
                                         </td>
                                         <td className="p-2 text-right">
                                             <button
@@ -1764,12 +1875,91 @@ export default function AdminProducts() {
                                                     <div className="col-span-2">
                                                         <div className="text-xs uppercase tracking-wide text-gray-500">Estado</div>
                                                         <div className="mt-1">
-                                                            <span
-                                                                className={`px-2 py-1 rounded text-xs ${p.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                                                    }`}
+                                                            {/* Toggle visual Estado móvil */}
+                                                            <button
+                                                                type="button"
+                                                                aria-label={p.is_active ? "Desactivar producto" : "Activar producto"}
+                                                                disabled={changingStatusId === p.id}
+                                                                onClick={async () => {
+                                                                    const nextActive = !p.is_active;
+                                                                    const isStatusFilter = selectedStatus === 'activos' || selectedStatus === 'inactivos';
+                                                                    if (isStatusFilter) {
+                                                                        setChangingStatusId(p.id);
+                                                                        setChangingStatusMsg(`Cambiando producto a ${nextActive ? 'activo' : 'inactivo'}...`);
+                                                                    }
+                                                                    try {
+                                                                        const res = await fetch(`${API}/admin/products/${p.id}`, {
+                                                                            method: "PUT",
+                                                                            headers: {
+                                                                                "Content-Type": "application/json",
+                                                                                Authorization: `Bearer ${token}`,
+                                                                            },
+                                                                            body: JSON.stringify({ is_active: nextActive }),
+                                                                        });
+                                                                        if (!res.ok) {
+                                                                            const data = await res.json().catch(() => ({}));
+                                                                            alert(`No se pudo actualizar el estado: ${data?.error || res.statusText}`);
+                                                                            setChangingStatusId(null);
+                                                                            setChangingStatusMsg("");
+                                                                            return;
+                                                                        }
+                                                                        if (isStatusFilter) {
+                                                                            setChangingStatusMsg(`Cambiando producto a ${nextActive ? 'activo' : 'inactivo'}...`);
+                                                                            setTimeout(() => {
+                                                                                setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, is_active: nextActive } : prod));
+                                                                                setChangingStatusId(null);
+                                                                                setChangingStatusMsg("");
+                                                                            }, 2000);
+                                                                        } else {
+                                                                            setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, is_active: nextActive } : prod));
+                                                                        }
+                                                                    } catch {
+                                                                        alert("Error actualizando estado");
+                                                                        setChangingStatusId(null);
+                                                                        setChangingStatusMsg("");
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    cursor: changingStatusId === p.id ? 'not-allowed' : 'pointer',
+                                                                    padding: 0,
+                                                                    margin: 0,
+                                                                }}
                                                             >
-                                                                {p.is_active ? "Activo" : "Inactivo"}
-                                                            </span>
+                                                                <span style={{
+                                                                    display: 'inline-block',
+                                                                    width: 38,
+                                                                    height: 22,
+                                                                    borderRadius: 12,
+                                                                    background: p.is_active ? '#bbf7d0' : '#fecaca',
+                                                                    position: 'relative',
+                                                                    transition: 'background 0.2s',
+                                                                    marginRight: 8,
+                                                                }}>
+                                                                    <span style={{
+                                                                        position: 'absolute',
+                                                                        left: p.is_active ? 18 : 2,
+                                                                        top: 2,
+                                                                        width: 18,
+                                                                        height: 18,
+                                                                        borderRadius: '50%',
+                                                                        background: p.is_active ? '#059669' : '#b91c1c',
+                                                                        transition: 'left 0.2s, background 0.2s',
+                                                                    }} />
+                                                                </span>
+                                                                <span style={{
+                                                                    fontSize: 12,
+                                                                    fontWeight: 600,
+                                                                    color: p.is_active ? '#059669' : '#b91c1c',
+                                                                    minWidth: 54,
+                                                                    textAlign: 'left',
+                                                                }}>
+                                                                    {p.is_active ? 'Activo' : 'Inactivo'}
+                                                                </span>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2335,18 +2525,18 @@ export default function AdminProducts() {
                         </label>
 
                         <div className="flex gap-2 justify-end">
-                            <button type="button" onClick={() => setForm(null)} className="px-3 py-2 border rounded">
+                            <button type="button" onClick={() => setForm(null)} disabled={savingProduct} className="px-3 py-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed">
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 disabled={savingProduct}
-                                className={`px-3 py-2 text-white rounded transition-colors disabled:cursor-not-allowed ${savingProduct
-                                    ? "bg-amber-600 hover:bg-amber-600"
-                                    : "bg-purple-600 hover:bg-purple-700"
-                                    }`}
+                                className={`px-3 py-2 text-white rounded hover:opacity-90 flex items-center gap-2 ${savingProduct ? 'bg-orange-600' : 'bg-purple-600 hover:bg-purple-700'}`}
                             >
-                                {savingProduct ? "Guardando..." : "Guardar"}
+                                {savingProduct && (
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                )}
+                                {savingProduct ? 'Guardando...' : 'Guardar'}
                             </button>
                         </div>
 
