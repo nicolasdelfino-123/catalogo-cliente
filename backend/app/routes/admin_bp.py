@@ -244,15 +244,29 @@ def update_product(product_id):
         # numéricos / flags base
       
 
-        if 'price' in data:
-            product.price = float(data['price'])
+       # Primero ver si vienen volume_options
+        volume_options_updated = False
+        if 'volume_options' in data:
+            product.volume_options = _normalize_volume_options(data.get('volume_options'))
+            volume_options_updated = True
 
-        # ✅ guardar precio mayorista
-        if 'price_wholesale' in data:
-            try:
-                product.price_wholesale = float(data['price_wholesale']) if data['price_wholesale'] not in ("", None) else None
-            except:
-                product.price_wholesale = None
+        # Si hay precios por volumen → esos mandan
+        if volume_options_updated and product.volume_options and len(product.volume_options) > 0:
+            first = product.volume_options[0]
+            if first.get('price') is not None:
+                product.price = float(first.get('price'))
+            if first.get('price_wholesale') is not None:
+                product.price_wholesale = float(first.get('price_wholesale'))
+        else:
+            # Si NO hay volume_options → usar price normal
+            if 'price' in data:
+                product.price = float(data['price'])
+
+            if 'price_wholesale' in data:
+                try:
+                    product.price_wholesale = float(data['price_wholesale']) if data['price_wholesale'] not in ("", None) else None
+                except:
+                    product.price_wholesale = None
 
         if 'category_id' in data:
             next_category_id = int(data['category_id'])
@@ -270,17 +284,7 @@ def update_product(product_id):
                 product.volume_ml = None if raw in ("", None) else max(0, int(float(raw)))
             except Exception:
                 product.volume_ml = None
-        volume_options_updated = False
-        if 'volume_options' in data:
-            product.volume_options = _normalize_volume_options(data.get('volume_options'))
-            volume_options_updated = True
-         # 🔥 AGREGAR ESTO
-        if volume_options_updated and product.volume_options and len(product.volume_options) > 0:
-            first = product.volume_options[0]
-            if first.get('price') is not None:
-                product.price = float(first.get('price'))
-            if first.get('price_wholesale') is not None:
-                product.price_wholesale = float(first.get('price_wholesale'))
+       
 
 
         # ===== NUEVO: catálogo y modo =====
