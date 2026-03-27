@@ -432,6 +432,8 @@ export default function AdminProducts() {
     const [budgetSelections, setBudgetSelections] = useState({});
     const [budgetModalOpen, setBudgetModalOpen] = useState(false);
     const [expandedMobileProductId, setExpandedMobileProductId] = useState(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadingImageLabel, setUploadingImageLabel] = useState("");
 
 
 
@@ -735,6 +737,9 @@ export default function AdminProducts() {
 
 
     const uploadImage = async (file, { asMain = false } = {}) => {
+        setUploadingImage(true);
+        setUploadingImageLabel(asMain ? "Subiendo imagen principal..." : "Subiendo imagen...");
+
         try {
             const fd = new FormData();
             fd.append("image", file);
@@ -763,6 +768,9 @@ export default function AdminProducts() {
         } catch (e) {
             console.error(e);
             alert("No se pudo subir la imagen");
+        } finally {
+            setUploadingImage(false);
+            setUploadingImageLabel("");
         }
     };
 
@@ -2197,8 +2205,9 @@ export default function AdminProducts() {
                             />
                             <button
                                 type="button"
+                                disabled={uploadingImage}
                                 onClick={() => mainImgInputRef.current?.click()}
-                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap"
+                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                                 title="Subir como principal"
                             >
                                 Subir principal
@@ -2218,20 +2227,29 @@ export default function AdminProducts() {
                             />
                             <button
                                 type="button"
+                                disabled={uploadingImage}
                                 onClick={() => galImgInputRef.current?.click()}
-                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap"
+                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                                 title="Agregar a galería"
                             >
                                 Agregar foto
                             </button>
                             <button
                                 type="button"
+                                disabled={uploadingImage}
                                 onClick={deleteSelectedImage}
-                                className="px-3 py-2 border rounded hover:bg-red-50 shrink-0 whitespace-nowrap text-red-700"
+                                className="px-3 py-2 border rounded hover:bg-red-50 shrink-0 whitespace-nowrap text-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
                                 title="Eliminar la foto seleccionada (principal)"
                             >
                                 Eliminar foto seleccionada
                             </button>
+
+                            {uploadingImage && (
+                                <div className="flex items-center gap-2 text-sm text-blue-700 shrink-0 whitespace-nowrap">
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700" />
+                                    <span>{uploadingImageLabel}</span>
+                                </div>
+                            )}
 
                         </div>
 
