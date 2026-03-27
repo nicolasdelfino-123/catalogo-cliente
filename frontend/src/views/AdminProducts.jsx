@@ -2159,9 +2159,9 @@ export default function AdminProducts() {
 
                         <label className="block text-sm font-medium text-gray-700 mb-1">Imagen del producto</label>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-nowrap items-center gap-2">
                             <input
-                                className="flex-1 min-w-[100px] border rounded px-3 py-2"
+                                className="flex-1 min-w-0 border rounded px-3 py-2"
                                 placeholder="URL de la imagen"
                                 value={form.image_url || ""}
                                 onChange={(e) => setForm({ ...form, image_url: e.target.value })}
@@ -2198,7 +2198,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={() => mainImgInputRef.current?.click()}
-                                className="w-full px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
+                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap"
                                 title="Subir como principal"
                             >
                                 Subir principal
@@ -2219,7 +2219,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={() => galImgInputRef.current?.click()}
-                                className="w-full px-3 py-2 border rounded hover:bg-gray-50 shrink-0"
+                                className="px-3 py-2 border rounded hover:bg-gray-50 shrink-0 whitespace-nowrap"
                                 title="Agregar a galería"
                             >
                                 Agregar foto
@@ -2227,7 +2227,7 @@ export default function AdminProducts() {
                             <button
                                 type="button"
                                 onClick={deleteSelectedImage}
-                                className="w-full px-3 py-2 border rounded hover:bg-red-50 shrink-0 text-red-700"
+                                className="px-3 py-2 border rounded hover:bg-red-50 shrink-0 whitespace-nowrap text-red-700"
                                 title="Eliminar la foto seleccionada (principal)"
                             >
                                 Eliminar foto seleccionada
