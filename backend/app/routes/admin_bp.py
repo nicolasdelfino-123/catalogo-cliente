@@ -274,6 +274,13 @@ def update_product(product_id):
         if 'volume_options' in data:
             product.volume_options = _normalize_volume_options(data.get('volume_options'))
             volume_options_updated = True
+         # 🔥 AGREGAR ESTO
+        if volume_options_updated and product.volume_options and len(product.volume_options) > 0:
+            first = product.volume_options[0]
+            if first.get('price') is not None:
+                product.price = float(first.get('price'))
+            if first.get('price_wholesale') is not None:
+                product.price_wholesale = float(first.get('price_wholesale'))
 
 
         # ===== NUEVO: catálogo y modo =====

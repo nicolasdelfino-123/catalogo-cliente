@@ -150,7 +150,7 @@ typings/
 dist
 .cache/
 
-
+.sfdx/
 # Vuepress
 .vuepress/dist
 
