@@ -105,7 +105,7 @@ export default function Devoluciones() {
                         </p>
 
                         <p className="font-medium">
-                            contacto: <strong>xxxx@xxxx.com</strong>
+                            contacto: <strong>shathaperfumeslv@gmail.com</strong>
                         </p>
                     </section>
 

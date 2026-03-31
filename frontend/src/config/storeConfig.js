@@ -3,13 +3,13 @@ export const storeConfig = {
 
     branding: {
         heroTitle: "Fragancias Árabes",
-        heroSubtitle: "Aromas intensos • Elegancia sofisticada • Exclusividad",
+        heroSubtitle: "Perfumes y fragancias árabes premium 100% originales",
     },
 
     contact: {
-        whatsapp: "5493533459552",
+        whatsapp: "5493533441998",
         whatsappMessage: "Hola, quiero consultar por un perfume del catálogo",
-        whatsappDisplay: "+54 9 3533 45-9552",
+        whatsappDisplay: "+54 9 3533 44-1998",
 
         instagram: "https://www.instagram.com/shatha_oriental/",
         instagramDisplay: "@shatha_oriental",
